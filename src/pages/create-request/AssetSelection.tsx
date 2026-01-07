@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Search } from 'lucide-react';
+import { ChevronRight, Search, FolderOpen, Folder, ChevronDown } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useRequestCreation } from '../../context/RequestCreationContext';
+import { Asset } from '../../types';
 
 const AssetSelection: React.FC = () => {
   const navigate = useNavigate();
   const { assets } = useAppContext();
   const { setSelectedAsset, setStep } = useRequestCreation();
 
+  const [viewMode, setViewMode] = useState<'directory' | 'uns'>('directory');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState('');
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  // Group assets by site and building for UNS view
+  const unsStructure = React.useMemo(() => {
+    const structure: Record<string, Record<string, Asset[]>> = {};
+
+    assets.forEach((asset) => {
+      if (!structure[asset.site]) {
+        structure[asset.site] = {};
+      }
+      if (!structure[asset.site][asset.building]) {
+        structure[asset.site][asset.building] = [];
+      }
+      structure[asset.site][asset.building].push(asset);
+    });
+
+    return structure;
+  }, [assets]);
 
   const filteredAssets = assets.filter(
     (asset) =>
@@ -22,12 +42,131 @@ const AssetSelection: React.FC = () => {
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId);
 
+  const toggleNode = (nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  };
+
   const handleNext = () => {
     if (selectedAsset) {
       setSelectedAsset(selectedAsset);
       setStep(2);
       navigate('/create-request/describe');
     }
+  };
+
+  const renderUNSTree = () => {
+    return (
+      <div className="border border-gray-200 rounded-lg p-4">
+        {Object.entries(unsStructure).map(([site, buildings]) => {
+          const siteExpanded = expandedNodes.has(site);
+
+          return (
+            <div key={site} className="mb-2">
+              {/* Site Level */}
+              <div
+                onClick={() => toggleNode(site)}
+                className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+              >
+                {siteExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-gray-600" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                )}
+                {siteExpanded ? (
+                  <FolderOpen className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Folder className="w-5 h-5 text-gray-600" />
+                )}
+                <span className="font-medium text-gray-900">{site}</span>
+                <span className="text-sm text-gray-500">
+                  ({Object.values(buildings).reduce((sum, assets) => sum + assets.length, 0)} assets)
+                </span>
+              </div>
+
+              {/* Buildings Level */}
+              {siteExpanded && (
+                <div className="ml-6">
+                  {Object.entries(buildings).map(([building, buildingAssets]) => {
+                    const buildingId = `${site}/${building}`;
+                    const buildingExpanded = expandedNodes.has(buildingId);
+
+                    return (
+                      <div key={buildingId} className="mb-2">
+                        <div
+                          onClick={() => toggleNode(buildingId)}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          {buildingExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-gray-600" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-600" />
+                          )}
+                          {buildingExpanded ? (
+                            <FolderOpen className="w-4 h-4 text-blue-500" />
+                          ) : (
+                            <Folder className="w-4 h-4 text-gray-500" />
+                          )}
+                          <span className="text-gray-900">{building}</span>
+                          <span className="text-sm text-gray-500">({buildingAssets.length} assets)</span>
+                        </div>
+
+                        {/* Assets Level */}
+                        {buildingExpanded && (
+                          <div className="ml-6 space-y-1">
+                            {buildingAssets.map((asset) => (
+                              <div
+                                key={asset.id}
+                                onClick={() => setSelectedAssetId(asset.id)}
+                                className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                                  selectedAssetId === asset.id
+                                    ? 'bg-blue-50 border-l-2 border-l-blue-600'
+                                    : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-900">{asset.id}</span>
+                                    <span className="text-sm text-gray-500">-</span>
+                                    <span className="text-sm text-gray-700">{asset.name}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500 ml-6">{asset.type}</div>
+                                </div>
+                                {selectedAssetId === asset.id && (
+                                  <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -58,68 +197,107 @@ const AssetSelection: React.FC = () => {
         </div>
       </div>
 
+      {/* View Mode Toggle */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+        <div className="flex items-center space-x-4">
+          <span className="text-sm font-medium text-gray-700">Browse:</span>
+          <button
+            onClick={() => setViewMode('directory')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'directory'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Asset Directory
+          </button>
+          <button
+            onClick={() => setViewMode('uns')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'uns'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            UNS Tree
+          </button>
+        </div>
+      </div>
+
       {/* Asset Selection */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Asset</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          {viewMode === 'directory' ? 'Asset Directory' : 'Unified Namespace (UNS)'}
+        </h2>
 
-        {/* Search */}
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by asset ID, name, type, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Asset List */}
-        <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
-          {filteredAssets.map((asset) => (
-            <div
-              key={asset.id}
-              onClick={() => setSelectedAssetId(asset.id)}
-              className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
-                selectedAssetId === asset.id
-                  ? 'bg-blue-50 border-l-4 border-l-blue-600'
-                  : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="font-medium text-gray-900">{asset.id}</span>
-                    <span className="text-sm text-gray-500">-</span>
-                    <span className="text-gray-900">{asset.name}</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Type:</span> {asset.type}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Location:</span> {asset.location}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Owner:</span> {asset.owner}
-                  </div>
-                </div>
-                {selectedAssetId === asset.id && (
-                  <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                )}
+        {viewMode === 'directory' && (
+          <>
+            {/* Search */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by asset ID, name, type, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* Asset List */}
+            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+              {filteredAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  onClick={() => setSelectedAssetId(asset.id)}
+                  className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
+                    selectedAssetId === asset.id
+                      ? 'bg-blue-50 border-l-4 border-l-blue-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="font-medium text-gray-900">{asset.id}</span>
+                        <span className="text-sm text-gray-500">-</span>
+                        <span className="text-gray-900">{asset.name}</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Type:</span> {asset.type}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Location:</span> {asset.location}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Owner:</span> {asset.owner}
+                      </div>
+                    </div>
+                    {selectedAssetId === asset.id && (
+                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {viewMode === 'uns' && (
+          <div className="max-h-96 overflow-y-auto">
+            {renderUNSTree()}
+          </div>
+        )}
       </div>
 
       {/* Selected Asset Details */}
