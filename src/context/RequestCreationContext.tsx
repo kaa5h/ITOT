@@ -1,22 +1,20 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Asset, Connection, Endpoint } from '../types';
+import { Asset } from '../types';
 
 interface RequestCreationState {
   step: number;
   selectedAsset?: Asset;
-  context: string;
-  connection: Connection;
-  endpoints: Endpoint[];
-  templateId?: string;
+  description: string;
+  timeline: string;
+  estimatedDataPoints: string;
 }
 
 interface RequestCreationContextType extends RequestCreationState {
   setStep: (step: number) => void;
   setSelectedAsset: (asset: Asset) => void;
-  setContext: (context: string) => void;
-  setConnection: (connection: Connection) => void;
-  setEndpoints: (endpoints: Endpoint[]) => void;
-  setTemplateId: (id: string) => void;
+  setDescription: (description: string) => void;
+  setTimeline: (timeline: string) => void;
+  setEstimatedDataPoints: (count: string) => void;
   resetState: () => void;
 }
 
@@ -32,9 +30,9 @@ export const useRequestCreation = () => {
 
 const initialState: RequestCreationState = {
   step: 1,
-  context: '',
-  connection: { protocol: '', host: '', port: 502 },
-  endpoints: [],
+  description: '',
+  timeline: '',
+  estimatedDataPoints: '1-5',
 };
 
 export const RequestCreationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -44,10 +42,9 @@ export const RequestCreationProvider: React.FC<{ children: ReactNode }> = ({ chi
     ...state,
     setStep: (step) => setState((prev) => ({ ...prev, step })),
     setSelectedAsset: (selectedAsset) => setState((prev) => ({ ...prev, selectedAsset })),
-    setContext: (context) => setState((prev) => ({ ...prev, context })),
-    setConnection: (connection) => setState((prev) => ({ ...prev, connection })),
-    setEndpoints: (endpoints) => setState((prev) => ({ ...prev, endpoints })),
-    setTemplateId: (templateId) => setState((prev) => ({ ...prev, templateId })),
+    setDescription: (description) => setState((prev) => ({ ...prev, description })),
+    setTimeline: (timeline) => setState((prev) => ({ ...prev, timeline })),
+    setEstimatedDataPoints: (estimatedDataPoints) => setState((prev) => ({ ...prev, estimatedDataPoints })),
     resetState: () => setState(initialState),
   };
 

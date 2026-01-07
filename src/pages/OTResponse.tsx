@@ -303,7 +303,7 @@ const OTResponse: React.FC = () => {
       {/* Context Section */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <h3 className="text-sm font-semibold text-blue-900 mb-2">Request Context</h3>
-        <p className="text-sm text-blue-800">{request.context}</p>
+        <p className="text-sm text-blue-800">{request.description}</p>
       </div>
 
       {/* Progress */}

@@ -2,8 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import AssetSelection from './pages/create-request/AssetSelection';
-import ConnectionConfig from './pages/create-request/ConnectionConfig';
-import EndpointDefinition from './pages/create-request/EndpointDefinition';
+import DataDescription from './pages/create-request/DataDescription';
 import ReviewAndSend from './pages/create-request/ReviewAndSend';
 import OTResponse from './pages/OTResponse';
 import ITReview from './pages/ITReview';
@@ -18,8 +17,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/create-request/asset" element={<AssetSelection />} />
-        <Route path="/create-request/connection" element={<ConnectionConfig />} />
-        <Route path="/create-request/endpoints" element={<EndpointDefinition />} />
+        <Route path="/create-request/describe" element={<DataDescription />} />
         <Route path="/create-request/review" element={<ReviewAndSend />} />
         <Route path="/request/:id/respond" element={<OTResponse />} />
         <Route path="/request/:id/review" element={<ITReview />} />

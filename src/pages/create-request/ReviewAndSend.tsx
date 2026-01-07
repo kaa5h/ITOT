@@ -7,22 +7,20 @@ import { Request } from '../../types';
 
 const ReviewAndSend: React.FC = () => {
   const navigate = useNavigate();
-  const { addRequest, currentUser, templates } = useAppContext();
-  const { selectedAsset, context, connection, endpoints, templateId, resetState, setStep } = useRequestCreation();
+  const { addRequest, currentUser } = useAppContext();
+  const { selectedAsset, description, timeline, estimatedDataPoints, resetState, setStep } = useRequestCreation();
 
   const [emailNotification, setEmailNotification] = useState(true);
   const [inAppNotification, setInAppNotification] = useState(true);
 
-  if (!selectedAsset || !connection || !endpoints.length) {
+  if (!selectedAsset || !description.trim()) {
     navigate('/create-request/asset');
     return null;
   }
 
-  const template = templates.find((t) => t.id === templateId);
-
   const handlePrevious = () => {
-    setStep(3);
-    navigate('/create-request/endpoints');
+    setStep(2);
+    navigate('/create-request/describe');
   };
 
   const handleSend = () => {
@@ -36,9 +34,10 @@ const ReviewAndSend: React.FC = () => {
       assignedTo: selectedAsset.owner,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      context,
-      connection,
-      endpoints,
+      description,
+      timeline,
+      estimatedDataPoints,
+      endpoints: [], // Empty - OT will fill
       conversation: [],
       progressPercentage: 0,
     };
@@ -57,7 +56,7 @@ const ReviewAndSend: React.FC = () => {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Create New Request</h1>
-        <p className="text-gray-600">Step 4 of 4: Review & Send</p>
+        <p className="text-gray-600">Step 3 of 3: Review & Send</p>
       </div>
 
       {/* Progress Bar */}
@@ -72,14 +71,10 @@ const ReviewAndSend: React.FC = () => {
           <div className="flex-1">
             <div className="h-1 bg-blue-600 rounded"></div>
           </div>
-          <div className="flex-1">
-            <div className="h-1 bg-blue-600 rounded"></div>
-          </div>
         </div>
         <div className="flex justify-between mt-2 text-xs text-gray-600">
           <span>Asset</span>
-          <span>Connection</span>
-          <span>Endpoints</span>
+          <span>Describe Data</span>
           <span className="font-medium text-blue-600">Review</span>
         </div>
       </div>
@@ -111,51 +106,28 @@ const ReviewAndSend: React.FC = () => {
           </div>
         </div>
 
-        {/* Context */}
+        {/* What You're Requesting */}
         <div className="mb-4 pb-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Context</h3>
-          <p className="text-sm text-gray-900">
-            {context.length > 200 ? (
-              <>
-                {context.substring(0, 200)}...{' '}
-                <button className="text-blue-600 hover:underline">view more</button>
-              </>
-            ) : (
-              context
-            )}
-          </p>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">What you're requesting:</h3>
+          <div className="bg-gray-50 border border-gray-200 rounded p-3">
+            <p className="text-sm text-gray-900 whitespace-pre-wrap">{description}</p>
+          </div>
         </div>
 
-        {/* Connection */}
-        <div className="mb-4 pb-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Connection</h3>
+        {/* Additional Details */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Additional Details</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Protocol:</span>{' '}
-              <span className="text-gray-900 font-medium">{template?.name}</span>
+              <span className="text-gray-600">Estimated data points:</span>{' '}
+              <span className="text-gray-900">{estimatedDataPoints}</span>
             </div>
-            <div>
-              <span className="text-gray-600">Address:</span>{' '}
-              <span className="text-gray-900">
-                {connection.host ? `${connection.host}:${connection.port}` : 'To be filled by OT'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Endpoints */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Endpoints</h3>
-          <div className="text-sm text-gray-900">
-            <span className="font-medium">{endpoints.length}</span> endpoints defined
-          </div>
-          <div className="mt-2 space-y-2">
-            {endpoints.map((ep, index) => (
-              <div key={ep.id} className="text-sm">
-                <span className="text-gray-600">Endpoint {index + 1}:</span>{' '}
-                <span className="text-gray-900">{ep.fields.name || '(unnamed)'}</span>
+            {timeline && (
+              <div>
+                <span className="text-gray-600">Timeline:</span>{' '}
+                <span className="text-gray-900">{timeline}</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -171,9 +143,20 @@ const ReviewAndSend: React.FC = () => {
             This request will be assigned to: <span className="font-medium">{selectedAsset.owner}</span>
           </p>
           <p className="text-green-700">
-            They will receive a notification and can start filling in the machine details.
+            They will determine the protocol, configure connection details, and map your conceptual
+            requirements to technical endpoint configurations.
           </p>
         </div>
+      </div>
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
+        <p className="text-sm text-blue-800">
+          <strong>What happens next:</strong> OT personnel will review your requirements, determine which
+          protocol this machine uses, configure the network connection, and translate your conceptual data
+          needs into specific technical configurations. They may ask clarifying questions via the built-in
+          chat if needed.
+        </p>
       </div>
 
       {/* Notification Preferences */}

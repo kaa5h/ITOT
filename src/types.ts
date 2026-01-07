@@ -94,23 +94,25 @@ export interface Request {
   assignedTo: string;
   createdAt: string;
   updatedAt: string;
-  context: string;
-  connection?: Connection;
-  endpoints: Endpoint[];
+  description: string; // IT's conceptual description of what data is needed
+  timeline?: string; // When IT needs the data
+  estimatedDataPoints?: string; // Approximate number of data points
+  machineIdentifier?: string; // OT's machine ID (filled by OT)
+  connection?: Connection; // Filled by OT
+  endpoints: Endpoint[]; // Filled by OT
   conversation: Message[];
   exportedAt?: string;
   exportId?: string;
   progressPercentage?: number;
 }
 
-// Request Creation State
+// Request Creation State (simplified for IT)
 export interface RequestCreationState {
   step: number;
   selectedAsset?: Asset;
-  context: string;
-  connection?: Connection;
-  endpoints: Endpoint[];
-  templateId?: string;
+  description: string; // What data IT needs (conceptual)
+  timeline: string; // When they need it
+  estimatedDataPoints: string; // Approximate count
 }
 
 // App State

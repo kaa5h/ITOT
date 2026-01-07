@@ -615,7 +615,7 @@ export const requests: Request[] = [
     assignedTo: 'John Smith',
     createdAt: '2026-01-05T09:00:00Z',
     updatedAt: '2026-01-06T14:33:15Z',
-    context:
+    description:
       'Need outlet temperature from primary cooling loop for energy monitoring dashboard. This will be used to track cooling efficiency and identify anomalies.',
     connection: {
       protocol: 'modbus-tcp',
@@ -662,7 +662,7 @@ export const requests: Request[] = [
     assignedTo: 'Sarah Jones',
     createdAt: '2026-01-04T10:00:00Z',
     updatedAt: '2026-01-04T16:00:00Z',
-    context:
+    description:
       'Need pressure readings for safety monitoring system. Critical for compliance reporting.',
     connection: {
       protocol: 'modbus-tcp',
@@ -698,7 +698,7 @@ export const requests: Request[] = [
     assignedTo: 'Sarah Jones',
     createdAt: '2026-01-06T08:00:00Z',
     updatedAt: '2026-01-07T10:00:00Z',
-    context:
+    description:
       'Setting up energy monitoring for Building B. Need power consumption, voltage, and current data.',
     connection: {
       protocol: 'modbus-tcp',
@@ -734,7 +734,7 @@ export const requests: Request[] = [
     assignedTo: 'Sarah Jones',
     createdAt: '2026-01-06T09:00:00Z',
     updatedAt: '2026-01-07T11:00:00Z',
-    context:
+    description:
       'Need flow rate measurements for process optimization. Include both instantaneous and average values.',
     connection: {
       protocol: 'modbus-tcp',
@@ -776,7 +776,7 @@ export const requests: Request[] = [
     assignedTo: 'Ahmed Hassan',
     createdAt: '2026-01-06T10:00:00Z',
     updatedAt: '2026-01-07T11:30:00Z',
-    context:
+    description:
       'Need valve position and status for remote control system. Include both read and write capabilities.',
     connection: {
       protocol: 'modbus-tcp',
@@ -824,7 +824,7 @@ export const requests: Request[] = [
     assignedTo: 'John Smith',
     createdAt: '2026-01-06T13:00:00Z',
     updatedAt: '2026-01-07T11:00:00Z',
-    context:
+    description:
       'Need tank level monitoring for inventory management. Require both current level and alarm status.',
     connection: {
       protocol: 'opc-ua',
@@ -856,7 +856,7 @@ export const requests: Request[] = [
     assignedTo: 'John Smith',
     createdAt: '2026-01-07T08:00:00Z',
     updatedAt: '2026-01-07T10:30:00Z',
-    context:
+    description:
       'Setting up comprehensive cooling system monitoring. Need temperature, pressure, and flow data.',
     connection: {},
     endpoints: [
@@ -880,7 +880,7 @@ export const requests: Request[] = [
     assignedTo: 'John Smith',
     createdAt: '2026-01-06T14:00:00Z',
     updatedAt: '2026-01-07T09:00:00Z',
-    context:
+    description:
       'Need production metrics for OEE calculation. Require cycle count, downtime status, and rejection count.',
     connection: {},
     endpoints: [
@@ -919,7 +919,7 @@ export const requests: Request[] = [
     assignedTo: 'Ahmed Hassan',
     createdAt: '2026-01-06T11:00:00Z',
     updatedAt: '2026-01-07T10:00:00Z',
-    context: 'Flow measurement for Site 2 process optimization.',
+    description: 'Flow measurement for Site 2 process optimization.',
     connection: {
       protocol: 'modbus-tcp',
       host: '192.168.2.20',
@@ -952,7 +952,7 @@ export const requests: Request[] = [
     assignedTo: 'Sarah Jones',
     createdAt: '2026-01-07T09:00:00Z',
     updatedAt: '2026-01-07T09:00:00Z',
-    context: 'Pressure monitoring for Building B safety system.',
+    description: 'Pressure monitoring for Building B safety system.',
     connection: {},
     endpoints: [
       {
@@ -974,7 +974,7 @@ export const requests: Request[] = [
     assignedTo: 'Ahmed Hassan',
     createdAt: '2026-01-07T10:00:00Z',
     updatedAt: '2026-01-07T10:00:00Z',
-    context: 'Valve control integration for automated system.',
+    description: 'Valve control integration for automated system.',
     connection: {},
     endpoints: [
       {
@@ -996,7 +996,7 @@ export const requests: Request[] = [
     assignedTo: 'John Smith',
     createdAt: '2026-01-07T11:00:00Z',
     updatedAt: '2026-01-07T11:00:00Z',
-    context: 'Tank 2 level monitoring for inventory system.',
+    description: 'Tank 2 level monitoring for inventory system.',
     connection: {},
     endpoints: [
       {
@@ -1018,7 +1018,7 @@ export const requests: Request[] = [
     assignedTo: 'Sarah Jones',
     createdAt: '2026-01-07T11:30:00Z',
     updatedAt: '2026-01-07T11:30:00Z',
-    context: 'Cooling system monitoring for Building B.',
+    description: 'Cooling system monitoring for Building B.',
     connection: {},
     endpoints: [
       {

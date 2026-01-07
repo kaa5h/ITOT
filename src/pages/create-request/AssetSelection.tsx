@@ -7,11 +7,10 @@ import { useRequestCreation } from '../../context/RequestCreationContext';
 const AssetSelection: React.FC = () => {
   const navigate = useNavigate();
   const { assets } = useAppContext();
-  const { setSelectedAsset, setContext: setRequestContext, setStep } = useRequestCreation();
+  const { setSelectedAsset, setStep } = useRequestCreation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetId, setSelectedAssetId] = useState('');
-  const [context, setContext] = useState('');
 
   const filteredAssets = assets.filter(
     (asset) =>
@@ -24,11 +23,10 @@ const AssetSelection: React.FC = () => {
   const selectedAsset = assets.find((a) => a.id === selectedAssetId);
 
   const handleNext = () => {
-    if (selectedAsset && context.trim()) {
+    if (selectedAsset) {
       setSelectedAsset(selectedAsset);
-      setRequestContext(context);
       setStep(2);
-      navigate('/create-request/connection');
+      navigate('/create-request/describe');
     }
   };
 
@@ -37,7 +35,7 @@ const AssetSelection: React.FC = () => {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Create New Request</h1>
-        <p className="text-gray-600">Step 1 of 4: Select Asset</p>
+        <p className="text-gray-600">Step 1 of 3: Select Asset</p>
       </div>
 
       {/* Progress Bar */}
@@ -52,14 +50,10 @@ const AssetSelection: React.FC = () => {
           <div className="flex-1">
             <div className="h-1 bg-gray-200 rounded"></div>
           </div>
-          <div className="flex-1">
-            <div className="h-1 bg-gray-200 rounded"></div>
-          </div>
         </div>
         <div className="flex justify-between mt-2 text-xs text-gray-600">
           <span className="font-medium text-blue-600">Asset</span>
-          <span>Connection</span>
-          <span>Endpoints</span>
+          <span>Describe Data</span>
           <span>Review</span>
         </div>
       </div>
@@ -153,25 +147,12 @@ const AssetSelection: React.FC = () => {
         </div>
       )}
 
-      {/* Context */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Request Context <span className="text-red-500">*</span>
-        </h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Describe what you're trying to achieve. Which specific data points do you need? What will you use it for?
-          Clarify any naming ambiguities.
+      {/* Info Box */}
+      <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6">
+        <p className="text-sm text-amber-800">
+          <strong>Next step:</strong> You'll describe what data you need from this machine.
+          Be specific about which sensors/measurements you need, as machines often have many similar data points.
         </p>
-        <textarea
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder="Example: Need outlet temperature from primary cooling loop for energy monitoring dashboard. This will be used to track cooling efficiency and identify anomalies..."
-          className="w-full h-32 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-          maxLength={400}
-        />
-        <div className="text-right text-sm text-gray-500 mt-1">
-          {context.length}/400 characters
-        </div>
       </div>
 
       {/* Actions */}
@@ -184,14 +165,14 @@ const AssetSelection: React.FC = () => {
         </button>
         <button
           onClick={handleNext}
-          disabled={!selectedAssetId || !context.trim()}
+          disabled={!selectedAssetId}
           className={`inline-flex items-center px-6 py-2 rounded-lg transition-colors ${
-            selectedAssetId && context.trim()
+            selectedAssetId
               ? 'bg-blue-600 text-white hover:bg-blue-700'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          Next
+          Next: Describe Data
           <ChevronRight className="w-5 h-5 ml-2" />
         </button>
       </div>

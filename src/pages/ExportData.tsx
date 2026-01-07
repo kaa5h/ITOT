@@ -36,7 +36,7 @@ const ExportData: React.FC = () => {
       },
       context: {
         requestor: request.createdBy,
-        description: request.context,
+        description: request.description,
       },
       connection: request.connection,
       endpoints: request.endpoints.map((ep) => ep.fields),
