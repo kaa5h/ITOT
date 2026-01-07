@@ -1,0 +1,1033 @@
+import { User, Asset, Template, Request, Message } from '../types';
+
+// Users
+export const users: User[] = [
+  {
+    id: 'user-1',
+    name: 'Maria Lopez',
+    email: 'maria.lopez@company.com',
+    role: 'IT',
+  },
+  {
+    id: 'user-2',
+    name: 'David Chen',
+    email: 'david.chen@company.com',
+    role: 'IT',
+  },
+  {
+    id: 'user-3',
+    name: 'John Smith',
+    email: 'john.smith@company.com',
+    role: 'OT',
+    site: 'Site 1 Building A',
+  },
+  {
+    id: 'user-4',
+    name: 'Sarah Jones',
+    email: 'sarah.jones@company.com',
+    role: 'OT',
+    site: 'Site 1 Building B',
+  },
+  {
+    id: 'user-5',
+    name: 'Ahmed Hassan',
+    email: 'ahmed.hassan@company.com',
+    role: 'OT',
+    site: 'Site 2',
+  },
+  {
+    id: 'user-6',
+    name: 'System Admin',
+    email: 'admin@company.com',
+    role: 'Admin',
+  },
+];
+
+// Assets
+export const assets: Asset[] = [
+  {
+    id: 'ASSET-2847',
+    name: 'Temperature Control Unit',
+    type: 'Temperature Controller',
+    location: 'Site 1, Building A',
+    site: 'Site 1',
+    building: 'Building A',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-3011',
+    name: 'Energy Monitoring System',
+    type: 'Energy Monitor',
+    location: 'Site 1, Building B',
+    site: 'Site 1',
+    building: 'Building B',
+    owner: 'Sarah Jones',
+  },
+  {
+    id: 'ASSET-4120',
+    name: 'OEE Tracking System',
+    type: 'Production Monitor',
+    location: 'Site 1, Building A',
+    site: 'Site 1',
+    building: 'Building A',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-5001',
+    name: 'Pressure Monitor A1',
+    type: 'Pressure Monitor',
+    location: 'Site 1, Building A',
+    site: 'Site 1',
+    building: 'Building A',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-5002',
+    name: 'Pressure Monitor B1',
+    type: 'Pressure Monitor',
+    location: 'Site 1, Building B',
+    site: 'Site 1',
+    building: 'Building B',
+    owner: 'Sarah Jones',
+  },
+  {
+    id: 'ASSET-6100',
+    name: 'Flow Meter Alpha',
+    type: 'Flow Meter',
+    location: 'Site 1, Building C',
+    site: 'Site 1',
+    building: 'Building C',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-6200',
+    name: 'Flow Meter Beta',
+    type: 'Flow Meter',
+    location: 'Site 2, Building A',
+    site: 'Site 2',
+    building: 'Building A',
+    owner: 'Ahmed Hassan',
+  },
+  {
+    id: 'ASSET-7000',
+    name: 'Valve Actuator V1',
+    type: 'Valve Actuator',
+    location: 'Site 2, Building A',
+    site: 'Site 2',
+    building: 'Building A',
+    owner: 'Ahmed Hassan',
+  },
+  {
+    id: 'ASSET-7100',
+    name: 'Valve Actuator V2',
+    type: 'Valve Actuator',
+    location: 'Site 2, Building B',
+    site: 'Site 2',
+    building: 'Building B',
+    owner: 'Ahmed Hassan',
+  },
+  {
+    id: 'ASSET-8000',
+    name: 'Level Sensor Tank 1',
+    type: 'Level Sensor',
+    location: 'Site 3, Building A',
+    site: 'Site 3',
+    building: 'Building A',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-8100',
+    name: 'Level Sensor Tank 2',
+    type: 'Level Sensor',
+    location: 'Site 3, Building A',
+    site: 'Site 3',
+    building: 'Building A',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-9000',
+    name: 'Cooling System CS1',
+    type: 'Temperature Controller',
+    location: 'Site 1, Building A',
+    site: 'Site 1',
+    building: 'Building A',
+    owner: 'John Smith',
+  },
+  {
+    id: 'ASSET-9100',
+    name: 'Cooling System CS2',
+    type: 'Temperature Controller',
+    location: 'Site 1, Building B',
+    site: 'Site 1',
+    building: 'Building B',
+    owner: 'Sarah Jones',
+  },
+];
+
+// Templates
+export const templates: Template[] = [
+  {
+    id: 'modbus-tcp',
+    name: 'Modbus TCP',
+    protocol: 'modbus-tcp',
+    status: 'active',
+    fields: [
+      {
+        name: 'name',
+        type: 'text',
+        required: true,
+        label: 'Metric Name',
+        placeholder: 'e.g., Outlet Temperature',
+      },
+      {
+        name: 'register',
+        type: 'number',
+        required: true,
+        label: 'Register Address',
+        placeholder: 'e.g., 40001',
+      },
+      {
+        name: 'dataType',
+        type: 'select',
+        required: true,
+        label: 'Data Type',
+        options: ['Float32', 'Int16', 'Int32', 'UInt16', 'UInt32'],
+      },
+      {
+        name: 'operation',
+        type: 'select',
+        required: true,
+        label: 'Operation',
+        options: ['Subscribe', 'Read', 'Write'],
+      },
+      {
+        name: 'unit',
+        type: 'select',
+        required: true,
+        label: 'Unit',
+        options: ['Celsius', 'Fahrenheit', 'PSI', 'Bar', 'None'],
+      },
+      {
+        name: 'byteOrder',
+        type: 'select',
+        required: false,
+        label: 'Byte Order',
+        options: ['Big Endian', 'Little Endian'],
+      },
+      {
+        name: 'scaling',
+        type: 'text',
+        required: false,
+        label: 'Scaling Factor',
+        placeholder: 'e.g., 0.1',
+      },
+    ],
+  },
+  {
+    id: 'opc-ua',
+    name: 'OPC UA',
+    protocol: 'opc-ua',
+    status: 'active',
+    fieldGroups: [
+      {
+        name: 'Basic Information',
+        fields: [
+          {
+            name: 'name',
+            type: 'text',
+            required: true,
+            label: 'Metric Name',
+            placeholder: 'e.g., Outlet Temperature',
+          },
+          {
+            name: 'operation',
+            type: 'select',
+            required: true,
+            label: 'Operation',
+            options: ['Subscribe', 'Read', 'Write'],
+          },
+          {
+            name: 'description',
+            type: 'textarea',
+            required: false,
+            label: 'Description',
+            placeholder: 'Describe this data point...',
+          },
+        ],
+      },
+      {
+        name: 'OPC UA Configuration',
+        fields: [
+          {
+            name: 'nodeId',
+            type: 'text',
+            required: true,
+            label: 'Node ID',
+            placeholder: 'ns=2;s=Temperature.Outlet',
+          },
+          {
+            name: 'dataType',
+            type: 'select',
+            required: true,
+            label: 'Data Type',
+            options: ['Float', 'Double', 'Int32', 'Boolean', 'String'],
+          },
+          {
+            name: 'browsePath',
+            type: 'text',
+            required: false,
+            label: 'Browse Path',
+            placeholder: '/Assets/Machine1/Temp',
+          },
+          {
+            name: 'samplingInterval',
+            type: 'number',
+            required: false,
+            label: 'Sampling Interval (ms)',
+            placeholder: '1000',
+          },
+        ],
+      },
+      {
+        name: 'Metadata',
+        fields: [
+          {
+            name: 'unit',
+            type: 'select',
+            required: true,
+            label: 'Unit',
+            options: ['Celsius', 'Fahrenheit', 'PSI', 'Bar', 'RPM', 'None'],
+          },
+          {
+            name: 'qualityIndicator',
+            type: 'select',
+            required: false,
+            label: 'Quality Requirement',
+            options: ['High', 'Medium', 'Low'],
+          },
+          {
+            name: 'customField',
+            type: 'text',
+            required: false,
+            label: 'Custom Field',
+            placeholder: 'Additional information...',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 's7',
+    name: 'Siemens S7',
+    protocol: 's7',
+    status: 'active',
+    fieldGroups: [
+      {
+        name: 'Basic Information',
+        fields: [
+          {
+            name: 'name',
+            type: 'text',
+            required: true,
+            label: 'Metric Name',
+          },
+          {
+            name: 'operation',
+            type: 'select',
+            required: true,
+            label: 'Operation',
+            options: ['Subscribe', 'Read', 'Write'],
+          },
+        ],
+      },
+      {
+        name: 'S7 Configuration',
+        fields: [
+          {
+            name: 'dbNumber',
+            type: 'number',
+            required: true,
+            label: 'DB Number',
+          },
+          {
+            name: 'offset',
+            type: 'number',
+            required: true,
+            label: 'Byte Offset',
+          },
+          {
+            name: 'bit',
+            type: 'number',
+            required: false,
+            label: 'Bit Number',
+          },
+          {
+            name: 'dataType',
+            type: 'select',
+            required: true,
+            label: 'Data Type',
+            options: ['Bool', 'Byte', 'Word', 'DWord', 'Int', 'DInt', 'Real'],
+          },
+          {
+            name: 'length',
+            type: 'number',
+            required: false,
+            label: 'Length (for strings)',
+          },
+        ],
+      },
+      {
+        name: 'Metadata',
+        fields: [
+          {
+            name: 'unit',
+            type: 'select',
+            required: true,
+            label: 'Unit',
+            options: ['Celsius', 'Fahrenheit', 'PSI', 'Bar', 'RPM', 'None'],
+          },
+          {
+            name: 'description',
+            type: 'textarea',
+            required: false,
+            label: 'Description',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'profinet',
+    name: 'PROFINET',
+    protocol: 'profinet',
+    status: 'inactive',
+    fields: [
+      {
+        name: 'name',
+        type: 'text',
+        required: true,
+        label: 'Metric Name',
+      },
+      {
+        name: 'slot',
+        type: 'number',
+        required: true,
+        label: 'Slot Number',
+      },
+      {
+        name: 'dataType',
+        type: 'select',
+        required: true,
+        label: 'Data Type',
+        options: ['Int', 'Real', 'Bool'],
+      },
+    ],
+  },
+];
+
+// Pre-written conversation threads
+const conversation1: Message[] = [
+  {
+    id: 'msg-1',
+    timestamp: '2026-01-05T10:00:00Z',
+    from: 'John Smith',
+    role: 'OT',
+    message: 'Quick question about the temperature endpoint - which sensor specifically?',
+  },
+  {
+    id: 'msg-2',
+    timestamp: '2026-01-05T10:05:00Z',
+    from: 'Maria Lopez',
+    role: 'IT',
+    message:
+      'The outlet temperature sensor on the primary cooling loop. Thanks!',
+  },
+  {
+    id: 'msg-3',
+    timestamp: '2026-01-05T10:15:00Z',
+    from: 'John Smith',
+    role: 'OT',
+    message: 'Got it, filling that in now.',
+  },
+];
+
+const conversation2: Message[] = [
+  {
+    id: 'msg-4',
+    timestamp: '2026-01-05T14:00:00Z',
+    from: 'John Smith',
+    role: 'OT',
+    message:
+      "Quick question: You mentioned outlet temp from cooling loop. This machine has 3 cooling loops. Which one?",
+  },
+  {
+    id: 'msg-5',
+    timestamp: '2026-01-05T14:05:00Z',
+    from: 'Maria Lopez',
+    role: 'IT',
+    message: 'Primary cooling loop, and we need calibrated value. Thanks!',
+  },
+  {
+    id: 'msg-6',
+    timestamp: '2026-01-05T16:00:00Z',
+    from: 'John Smith',
+    role: 'OT',
+    message:
+      "Issue with Endpoint 2: This machine doesn't have inlet pressure sensor. Only outlet pressure available. Should I provide that instead?",
+    issueFlagged: true,
+  },
+  {
+    id: 'msg-7',
+    timestamp: '2026-01-05T16:15:00Z',
+    from: 'Maria Lopez',
+    role: 'IT',
+    message: 'Yes, outlet pressure works! Please provide that instead.',
+    isResolution: true,
+  },
+  {
+    id: 'msg-8',
+    timestamp: '2026-01-06T14:12:00Z',
+    from: 'John Smith',
+    role: 'OT',
+    message: 'Done! Both endpoints tested and working.',
+  },
+];
+
+const conversation3: Message[] = [
+  {
+    id: 'msg-9',
+    timestamp: '2026-01-04T14:00:00Z',
+    from: 'Sarah Jones',
+    role: 'OT',
+    message:
+      'Problem: The register you specified (40001) is read-only and used for system diagnostics. Did you mean 40015 (the user-accessible register)?',
+    issueFlagged: true,
+  },
+  {
+    id: 'msg-10',
+    timestamp: '2026-01-04T14:10:00Z',
+    from: 'David Chen',
+    role: 'IT',
+    message: 'Yes! My mistake. Please use 40015. Thank you for catching that.',
+    isResolution: true,
+  },
+  {
+    id: 'msg-11',
+    timestamp: '2026-01-04T14:20:00Z',
+    from: 'Sarah Jones',
+    role: 'OT',
+    message: 'Updated. All endpoints working correctly now.',
+  },
+];
+
+const conversation4: Message[] = [
+  {
+    id: 'msg-12',
+    timestamp: '2026-01-06T11:00:00Z',
+    from: 'Sarah Jones',
+    role: 'OT',
+    message:
+      "I'm seeing two possible registers for flow rate. Register 30050 gives instantaneous flow, and 30051 gives averaged flow over 5 minutes. Which do you need?",
+  },
+  {
+    id: 'msg-13',
+    timestamp: '2026-01-06T11:15:00Z',
+    from: 'Maria Lopez',
+    role: 'IT',
+    message: "Good question. What's the update frequency on each?",
+  },
+  {
+    id: 'msg-14',
+    timestamp: '2026-01-06T11:20:00Z',
+    from: 'Sarah Jones',
+    role: 'OT',
+    message:
+      'Instantaneous updates every second. Averaged updates every 30 seconds.',
+  },
+  {
+    id: 'msg-15',
+    timestamp: '2026-01-06T11:25:00Z',
+    from: 'Maria Lopez',
+    role: 'IT',
+    message:
+      "Let's go with instantaneous (30050). We'll handle averaging on our side if needed.",
+  },
+  {
+    id: 'msg-16',
+    timestamp: '2026-01-06T11:30:00Z',
+    from: 'Sarah Jones',
+    role: 'OT',
+    message:
+      'Perfect. One more thing - do you need the flow direction flag (register 30052) as well? It indicates forward/reverse flow.',
+  },
+  {
+    id: 'msg-17',
+    timestamp: '2026-01-06T11:35:00Z',
+    from: 'Maria Lopez',
+    role: 'IT',
+    message: 'Yes, that would be helpful! Please add that as a third endpoint.',
+  },
+  {
+    id: 'msg-18',
+    timestamp: '2026-01-06T12:00:00Z',
+    from: 'Sarah Jones',
+    role: 'OT',
+    message: 'All three endpoints configured and tested. Looking good!',
+  },
+];
+
+const conversation5: Message[] = [
+  {
+    id: 'msg-19',
+    timestamp: '2026-01-05T15:00:00Z',
+    from: 'Ahmed Hassan',
+    role: 'OT',
+    message:
+      'I need to check with the PLC programmer to get the exact node IDs for the OPC UA endpoints. Can I update this by tomorrow morning?',
+  },
+  {
+    id: 'msg-20',
+    timestamp: '2026-01-05T15:10:00Z',
+    from: 'David Chen',
+    role: 'IT',
+    message:
+      "No problem at all. We don't need this until Friday anyway. Take your time!",
+  },
+  {
+    id: 'msg-21',
+    timestamp: '2026-01-06T09:00:00Z',
+    from: 'Ahmed Hassan',
+    role: 'OT',
+    message: 'Got the node IDs from the programmer. Filling them in now.',
+  },
+];
+
+// Requests
+export const requests: Request[] = [
+  // Complete Request 1
+  {
+    id: 'REQ-001',
+    assetId: 'ASSET-2847',
+    assetName: 'Temperature Control Unit',
+    location: 'Site 1, Building A',
+    status: 'complete',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'John Smith',
+    createdAt: '2026-01-05T09:00:00Z',
+    updatedAt: '2026-01-06T14:33:15Z',
+    context:
+      'Need outlet temperature from primary cooling loop for energy monitoring dashboard. This will be used to track cooling efficiency and identify anomalies.',
+    connection: {
+      protocol: 'modbus-tcp',
+      host: '192.168.1.100',
+      port: 502,
+    },
+    endpoints: [
+      {
+        id: 'ep-1',
+        fields: {
+          name: 'Outlet Temperature',
+          register: 40015,
+          dataType: 'Float32',
+          operation: 'Subscribe',
+          unit: 'Celsius',
+        },
+        completed: true,
+      },
+      {
+        id: 'ep-2',
+        fields: {
+          name: 'Outlet Pressure',
+          register: 40020,
+          dataType: 'Int16',
+          operation: 'Subscribe',
+          unit: 'PSI',
+        },
+        completed: true,
+      },
+    ],
+    conversation: conversation2,
+    exportedAt: '2026-01-06T14:33:15Z',
+    exportId: 'EXPORT-2026-01-06-143315',
+    progressPercentage: 100,
+  },
+  // Complete Request 2
+  {
+    id: 'REQ-002',
+    assetId: 'ASSET-5001',
+    assetName: 'Pressure Monitor A1',
+    location: 'Site 1, Building A',
+    status: 'complete',
+    createdBy: 'David Chen',
+    assignedTo: 'Sarah Jones',
+    createdAt: '2026-01-04T10:00:00Z',
+    updatedAt: '2026-01-04T16:00:00Z',
+    context:
+      'Need pressure readings for safety monitoring system. Critical for compliance reporting.',
+    connection: {
+      protocol: 'modbus-tcp',
+      host: '192.168.1.105',
+      port: 502,
+    },
+    endpoints: [
+      {
+        id: 'ep-3',
+        fields: {
+          name: 'Primary Pressure',
+          register: 40015,
+          dataType: 'Float32',
+          operation: 'Subscribe',
+          unit: 'PSI',
+        },
+        completed: true,
+      },
+    ],
+    conversation: conversation3,
+    exportedAt: '2026-01-04T16:00:00Z',
+    exportId: 'EXPORT-2026-01-04-160000',
+    progressPercentage: 100,
+  },
+  // In Progress - 25% complete
+  {
+    id: 'REQ-003',
+    assetId: 'ASSET-3011',
+    assetName: 'Energy Monitoring System',
+    location: 'Site 1, Building B',
+    status: 'in-progress',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'Sarah Jones',
+    createdAt: '2026-01-06T08:00:00Z',
+    updatedAt: '2026-01-07T10:00:00Z',
+    context:
+      'Setting up energy monitoring for Building B. Need power consumption, voltage, and current data.',
+    connection: {
+      protocol: 'modbus-tcp',
+      host: '192.168.1.110',
+      port: 502,
+    },
+    endpoints: [
+      {
+        id: 'ep-4',
+        fields: {
+          name: 'Power Consumption',
+          register: 40001,
+        },
+        completed: false,
+      },
+      {
+        id: 'ep-5',
+        fields: {},
+        completed: false,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 25,
+  },
+  // In Progress - 60% complete
+  {
+    id: 'REQ-004',
+    assetId: 'ASSET-6100',
+    assetName: 'Flow Meter Alpha',
+    location: 'Site 1, Building C',
+    status: 'in-progress',
+    createdBy: 'David Chen',
+    assignedTo: 'Sarah Jones',
+    createdAt: '2026-01-06T09:00:00Z',
+    updatedAt: '2026-01-07T11:00:00Z',
+    context:
+      'Need flow rate measurements for process optimization. Include both instantaneous and average values.',
+    connection: {
+      protocol: 'modbus-tcp',
+      host: '192.168.1.120',
+      port: 502,
+    },
+    endpoints: [
+      {
+        id: 'ep-6',
+        fields: {
+          name: 'Instantaneous Flow',
+          register: 30050,
+          dataType: 'Float32',
+          operation: 'Subscribe',
+          unit: 'None',
+        },
+        completed: true,
+      },
+      {
+        id: 'ep-7',
+        fields: {
+          name: 'Flow Direction',
+          register: 30052,
+        },
+        completed: false,
+      },
+    ],
+    conversation: conversation4,
+    progressPercentage: 60,
+  },
+  // In Progress - 85% complete (almost done)
+  {
+    id: 'REQ-005',
+    assetId: 'ASSET-7000',
+    assetName: 'Valve Actuator V1',
+    location: 'Site 2, Building A',
+    status: 'in-progress',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'Ahmed Hassan',
+    createdAt: '2026-01-06T10:00:00Z',
+    updatedAt: '2026-01-07T11:30:00Z',
+    context:
+      'Need valve position and status for remote control system. Include both read and write capabilities.',
+    connection: {
+      protocol: 'modbus-tcp',
+      host: '192.168.2.10',
+      port: 502,
+    },
+    endpoints: [
+      {
+        id: 'ep-8',
+        fields: {
+          name: 'Valve Position',
+          register: 40010,
+          dataType: 'Int16',
+          operation: 'Subscribe',
+          unit: 'None',
+          byteOrder: 'Big Endian',
+          scaling: '0.1',
+        },
+        completed: true,
+      },
+      {
+        id: 'ep-9',
+        fields: {
+          name: 'Valve Status',
+          register: 40011,
+          dataType: 'Int16',
+          operation: 'Subscribe',
+          unit: 'None',
+          byteOrder: 'Big Endian',
+        },
+        completed: true,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 85,
+  },
+  // Discussion Active 1
+  {
+    id: 'REQ-006',
+    assetId: 'ASSET-8000',
+    assetName: 'Level Sensor Tank 1',
+    location: 'Site 3, Building A',
+    status: 'discussion-active',
+    createdBy: 'David Chen',
+    assignedTo: 'John Smith',
+    createdAt: '2026-01-06T13:00:00Z',
+    updatedAt: '2026-01-07T11:00:00Z',
+    context:
+      'Need tank level monitoring for inventory management. Require both current level and alarm status.',
+    connection: {
+      protocol: 'opc-ua',
+      host: '192.168.3.10',
+      port: 4840,
+    },
+    endpoints: [
+      {
+        id: 'ep-10',
+        fields: {
+          name: 'Tank Level',
+          operation: 'Subscribe',
+          nodeId: 'ns=2;s=Tank1.Level',
+        },
+        completed: false,
+      },
+    ],
+    conversation: conversation5,
+    progressPercentage: 40,
+  },
+  // Discussion Active 2
+  {
+    id: 'REQ-007',
+    assetId: 'ASSET-9000',
+    assetName: 'Cooling System CS1',
+    location: 'Site 1, Building A',
+    status: 'discussion-active',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'John Smith',
+    createdAt: '2026-01-07T08:00:00Z',
+    updatedAt: '2026-01-07T10:30:00Z',
+    context:
+      'Setting up comprehensive cooling system monitoring. Need temperature, pressure, and flow data.',
+    connection: {},
+    endpoints: [
+      {
+        id: 'ep-11',
+        fields: {},
+        completed: false,
+      },
+    ],
+    conversation: conversation1,
+    progressPercentage: 20,
+  },
+  // Blocked Request
+  {
+    id: 'REQ-008',
+    assetId: 'ASSET-4120',
+    assetName: 'OEE Tracking System',
+    location: 'Site 1, Building A',
+    status: 'blocked',
+    createdBy: 'David Chen',
+    assignedTo: 'John Smith',
+    createdAt: '2026-01-06T14:00:00Z',
+    updatedAt: '2026-01-07T09:00:00Z',
+    context:
+      'Need production metrics for OEE calculation. Require cycle count, downtime status, and rejection count.',
+    connection: {},
+    endpoints: [
+      {
+        id: 'ep-12',
+        fields: {
+          name: 'Cycle Count',
+        },
+        completed: false,
+        issueFlagged: true,
+        issueDescription:
+          "This machine doesn't have a direct cycle counter. The PLC tracks production differently. Need clarification on what exact metric you need.",
+      },
+    ],
+    conversation: [
+      {
+        id: 'msg-22',
+        timestamp: '2026-01-07T09:00:00Z',
+        from: 'John Smith',
+        role: 'OT',
+        message:
+          "Problem: This machine doesn't have a direct cycle counter. The PLC tracks production differently. Need clarification on what exact metric you need.",
+        issueFlagged: true,
+      },
+    ],
+    progressPercentage: 15,
+  },
+  // IT Review
+  {
+    id: 'REQ-009',
+    assetId: 'ASSET-6200',
+    assetName: 'Flow Meter Beta',
+    location: 'Site 2, Building A',
+    status: 'it-review',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'Ahmed Hassan',
+    createdAt: '2026-01-06T11:00:00Z',
+    updatedAt: '2026-01-07T10:00:00Z',
+    context: 'Flow measurement for Site 2 process optimization.',
+    connection: {
+      protocol: 'modbus-tcp',
+      host: '192.168.2.20',
+      port: 502,
+    },
+    endpoints: [
+      {
+        id: 'ep-13',
+        fields: {
+          name: 'Flow Rate',
+          register: 40050,
+          dataType: 'Float32',
+          operation: 'Subscribe',
+          unit: 'None',
+        },
+        completed: true,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 100,
+  },
+  // Pending Requests
+  {
+    id: 'REQ-010',
+    assetId: 'ASSET-5002',
+    assetName: 'Pressure Monitor B1',
+    location: 'Site 1, Building B',
+    status: 'pending',
+    createdBy: 'David Chen',
+    assignedTo: 'Sarah Jones',
+    createdAt: '2026-01-07T09:00:00Z',
+    updatedAt: '2026-01-07T09:00:00Z',
+    context: 'Pressure monitoring for Building B safety system.',
+    connection: {},
+    endpoints: [
+      {
+        id: 'ep-14',
+        fields: {},
+        completed: false,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 0,
+  },
+  {
+    id: 'REQ-011',
+    assetId: 'ASSET-7100',
+    assetName: 'Valve Actuator V2',
+    location: 'Site 2, Building B',
+    status: 'pending',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'Ahmed Hassan',
+    createdAt: '2026-01-07T10:00:00Z',
+    updatedAt: '2026-01-07T10:00:00Z',
+    context: 'Valve control integration for automated system.',
+    connection: {},
+    endpoints: [
+      {
+        id: 'ep-15',
+        fields: {},
+        completed: false,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 0,
+  },
+  {
+    id: 'REQ-012',
+    assetId: 'ASSET-8100',
+    assetName: 'Level Sensor Tank 2',
+    location: 'Site 3, Building A',
+    status: 'pending',
+    createdBy: 'David Chen',
+    assignedTo: 'John Smith',
+    createdAt: '2026-01-07T11:00:00Z',
+    updatedAt: '2026-01-07T11:00:00Z',
+    context: 'Tank 2 level monitoring for inventory system.',
+    connection: {},
+    endpoints: [
+      {
+        id: 'ep-16',
+        fields: {},
+        completed: false,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 0,
+  },
+  {
+    id: 'REQ-013',
+    assetId: 'ASSET-9100',
+    assetName: 'Cooling System CS2',
+    location: 'Site 1, Building B',
+    status: 'pending',
+    createdBy: 'Maria Lopez',
+    assignedTo: 'Sarah Jones',
+    createdAt: '2026-01-07T11:30:00Z',
+    updatedAt: '2026-01-07T11:30:00Z',
+    context: 'Cooling system monitoring for Building B.',
+    connection: {},
+    endpoints: [
+      {
+        id: 'ep-17',
+        fields: {},
+        completed: false,
+      },
+    ],
+    conversation: [],
+    progressPercentage: 0,
+  },
+];
