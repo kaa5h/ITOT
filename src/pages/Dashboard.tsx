@@ -15,6 +15,13 @@ const Dashboard: React.FC = () => {
   // Filter requests
   const filteredRequests = useMemo(() => {
     return requests.filter((req) => {
+      // Role-based filtering
+      const matchesRole =
+        currentUser.role === 'Admin' ? true : // Admin sees all
+        currentUser.role === 'IT' ? (req.createdBy === currentUser.name || req.status === 'it-review') : // IT sees created by them or awaiting review
+        currentUser.role === 'OT' ? req.assignedTo === currentUser.name : // OT sees assigned to them
+        false;
+
       const matchesSearch =
         req.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         req.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -23,9 +30,9 @@ const Dashboard: React.FC = () => {
 
       const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      return matchesRole && matchesSearch && matchesStatus;
     });
-  }, [requests, searchQuery, statusFilter]);
+  }, [requests, searchQuery, statusFilter, currentUser]);
 
   const handleRequestClick = (requestId: string, status: RequestStatus) => {
     if (status === 'complete') {

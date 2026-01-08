@@ -98,6 +98,28 @@ export interface Activity {
   details?: string;
 }
 
+// Notification Types
+export type NotificationType =
+  | 'request_created'
+  | 'request_assigned'
+  | 'status_changed'
+  | 'new_comment'
+  | 'request_submitted'
+  | 'mention';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  requestId: string;
+  requestName: string;
+  message: string;
+  from: string;
+  to: string;
+  timestamp: string;
+  read: boolean;
+  link: string;
+}
+
 // Request Types
 export interface Request {
   id: string;
@@ -139,10 +161,14 @@ export interface AppState {
   assets: Asset[];
   templates: Template[];
   requests: Request[];
+  notifications: Notification[];
   setCurrentUser: (user: User) => void;
   addRequest: (request: Request) => void;
   updateRequest: (id: string, updates: Partial<Request>) => void;
   addMessage: (requestId: string, message: Message) => void;
+  addNotification: (notification: Notification) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
 }
 
 // Export Types
