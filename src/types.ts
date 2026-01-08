@@ -15,8 +15,11 @@ export interface Asset {
   name: string;
   type: string;
   location: string;
-  site: string;
-  building: string;
+  company: string;
+  plant: string;
+  shop: string;
+  line: string;
+  station: string;
   owner: string;
 }
 
@@ -83,6 +86,18 @@ export type RequestStatus =
   | 'it-review'
   | 'complete';
 
+// Priority Types
+export type Priority = 'Low' | 'Medium' | 'High' | 'Critical';
+
+// Activity Types
+export interface Activity {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string; // e.g., "changed status from pending to in-progress"
+  details?: string;
+}
+
 // Request Types
 export interface Request {
   id: string;
@@ -90,6 +105,7 @@ export interface Request {
   assetName: string;
   location: string;
   status: RequestStatus;
+  priority: Priority;
   createdBy: string;
   assignedTo: string;
   createdAt: string;
@@ -101,6 +117,7 @@ export interface Request {
   connection?: Connection; // Filled by OT
   endpoints: Endpoint[]; // Filled by OT
   conversation: Message[];
+  activity: Activity[];
   exportedAt?: string;
   exportId?: string;
   progressPercentage?: number;

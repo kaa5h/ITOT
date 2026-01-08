@@ -30,6 +30,7 @@ const ReviewAndSend: React.FC = () => {
       assetName: selectedAsset.name,
       location: selectedAsset.location,
       status: 'pending',
+      priority: 'Medium',
       createdBy: currentUser.name,
       assignedTo: selectedAsset.owner,
       createdAt: new Date().toISOString(),
@@ -39,6 +40,7 @@ const ReviewAndSend: React.FC = () => {
       estimatedDataPoints,
       endpoints: [], // Empty - OT will fill
       conversation: [],
+      activity: [],
       progressPercentage: 0,
     };
 

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Send, AlertTriangle, CheckCircle, Plus, Trash2, Play } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Endpoint, Message, TemplateField } from '../types';
-import StatusBadge from '../components/StatusBadge';
+import { StatusBadge, Comment } from '../components/JiraComponents';
 
 const OTResponse: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -276,21 +276,6 @@ const OTResponse: React.FC = () => {
           />
         );
     }
-  };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
-    if (diffHours < 1) return 'Just now';
-    if (diffHours === 1) return '1h ago';
-    if (diffHours < 24) return `${diffHours}h ago`;
-
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays === 1) return '1 day ago';
-    return `${diffDays} days ago`;
   };
 
   // Initial pending view
@@ -675,47 +660,17 @@ const OTResponse: React.FC = () => {
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4">
               {request.conversation.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-gray-500">No messages yet. Ask a question if you need clarification!</p>
+                  <p className="text-sm text-gray-500">No comments yet. Ask a question if you need clarification!</p>
                 </div>
               ) : (
-                request.conversation.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`${
-                      msg.role === 'IT' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
-                    } border rounded-lg p-3`}
-                  >
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-sm text-gray-900">{msg.from}</span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded ${
-                            msg.role === 'IT' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'
-                          }`}
-                        >
-                          {msg.role}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">{formatTime(msg.timestamp)}</span>
-                    </div>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.message}</p>
-                    {msg.issueFlagged && (
-                      <div className="mt-2 flex items-center space-x-1 text-red-600">
-                        <AlertTriangle className="w-3 h-3" />
-                        <span className="text-xs font-medium">Issue Reported</span>
-                      </div>
-                    )}
-                    {msg.isResolution && (
-                      <div className="mt-2 flex items-center space-x-1 text-green-600">
-                        <CheckCircle className="w-3 h-3" />
-                        <span className="text-xs font-medium">Resolution</span>
-                      </div>
-                    )}
-                  </div>
-                ))
+                <div className="space-y-0">
+                  {request.conversation.map((msg) => (
+                    <Comment key={msg.id} message={msg} />
+                  ))}
+                </div>
               )}
               <div ref={chatEndRef} />
             </div>
