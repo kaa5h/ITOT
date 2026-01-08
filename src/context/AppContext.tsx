@@ -38,7 +38,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       read: false,
       link: `/request/${request.id}/respond`,
     };
-    setNotifications((prev) => [notification, ...prev]);
+    console.log('[AppContext] Creating notification for request assignment:', notification);
+    setNotifications((prev) => {
+      const updated = [notification, ...prev];
+      console.log('[AppContext] Updated notifications:', updated);
+      return updated;
+    });
   };
 
   const updateRequest = (id: string, updates: Partial<Request>) => {

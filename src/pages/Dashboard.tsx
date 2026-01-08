@@ -14,7 +14,10 @@ const Dashboard: React.FC = () => {
 
   // Filter requests
   const filteredRequests = useMemo(() => {
-    return requests.filter((req) => {
+    console.log('[Dashboard] Filtering requests for user:', currentUser.name, 'role:', currentUser.role);
+    console.log('[Dashboard] All requests:', requests);
+
+    const filtered = requests.filter((req) => {
       // Role-based filtering
       const matchesRole =
         currentUser.role === 'Admin' ? true : // Admin sees all
@@ -30,8 +33,13 @@ const Dashboard: React.FC = () => {
 
       const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
 
+      console.log(`[Dashboard] Request ${req.id} (${req.assetName}): matchesRole=${matchesRole}, matchesSearch=${matchesSearch}, matchesStatus=${matchesStatus}`);
+
       return matchesRole && matchesSearch && matchesStatus;
     });
+
+    console.log('[Dashboard] Filtered requests:', filtered);
+    return filtered;
   }, [requests, searchQuery, statusFilter, currentUser]);
 
   const handleRequestClick = (requestId: string, status: RequestStatus) => {

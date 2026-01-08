@@ -20,6 +20,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const userNotifications = notifications.filter(n => n.to === currentUser.name);
   const unreadCount = userNotifications.filter(n => !n.read).length;
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[Layout] Current user:', currentUser.name);
+    console.log('[Layout] All notifications:', notifications);
+    console.log('[Layout] User notifications:', userNotifications);
+    console.log('[Layout] Unread count:', unreadCount);
+  }, [currentUser.name, notifications, userNotifications, unreadCount]);
+
   // Close notification dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

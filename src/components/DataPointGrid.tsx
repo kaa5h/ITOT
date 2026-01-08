@@ -15,6 +15,22 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
   templateFields,
   onEndpointsChange,
 }) => {
+  // Ensure minimum 15 rows
+  const displayEndpoints = useMemo(() => {
+    const minRows = 15;
+    if (endpoints.length >= minRows) {
+      return endpoints;
+    }
+
+    // Add blank rows to reach 15
+    const blankRows = Array.from({ length: minRows - endpoints.length }, (_, i) => ({
+      id: `blank-${Date.now()}-${i}`,
+      fields: {},
+      completed: false,
+    }));
+
+    return [...endpoints, ...blankRows];
+  }, [endpoints]);
   // Build columns from template fields
   const columns = useMemo((): Column[] => {
     const cols: Column[] = [
@@ -55,7 +71,7 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
 
   // Build data rows
   const dataRows = useMemo((): Row<DefaultCellTypes>[] => {
-    return endpoints.map((endpoint, index) => {
+    return displayEndpoints.map((endpoint, index) => {
       const cells: DefaultCellTypes[] = [
         // Row number
         { type: 'text', text: (index + 1).toString(), nonEditable: true } as TextCell,
@@ -64,7 +80,7 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
       ];
 
       templateFields.forEach((field) => {
-        const value = endpoint.fields[field.name] || '';
+        const value = (endpoint.fields as Record<string, any>)[field.name] || '';
 
         switch (field.type) {
           case 'select':
@@ -73,6 +89,7 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
               selectedValue: value?.toString() || '',
               values: [{ value: '', label: 'Select...' }, ...(field.options || []).map(opt => ({ value: opt, label: opt }))],
               isOpen: false,
+              isDisabled: false,
             } as DropdownCell);
             break;
 
@@ -97,14 +114,14 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
         cells,
       };
     });
-  }, [endpoints, templateFields]);
+  }, [displayEndpoints, templateFields]);
 
   const rows = useMemo(() => [headerRow, ...dataRows], [headerRow, dataRows]);
 
   // Handle cell changes
   const handleChanges = useCallback(
     (changes: CellChange[]) => {
-      const updatedEndpoints = [...endpoints];
+      let updatedDisplayEndpoints = [...displayEndpoints];
 
       changes.forEach((change) => {
         const rowId = change.rowId as string;
@@ -115,7 +132,7 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
           return;
         }
 
-        const endpointIndex = updatedEndpoints.findIndex((ep) => ep.id === rowId);
+        const endpointIndex = updatedDisplayEndpoints.findIndex((ep) => ep.id === rowId);
         if (endpointIndex === -1) return;
 
         const field = templateFields.find((f) => f.name === columnId);
@@ -137,18 +154,36 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
             newValue = '';
         }
 
-        updatedEndpoints[endpointIndex] = {
-          ...updatedEndpoints[endpointIndex],
-          fields: {
-            ...updatedEndpoints[endpointIndex].fields,
-            [columnId]: newValue,
-          },
-        };
+        // Convert blank row to real endpoint if it was a blank
+        const currentEndpoint = updatedDisplayEndpoints[endpointIndex];
+        const isBlankRow = currentEndpoint.id.startsWith('blank-');
+
+        if (isBlankRow) {
+          // Create new real endpoint
+          updatedDisplayEndpoints[endpointIndex] = {
+            id: 'ep-' + Date.now() + '-' + endpointIndex,
+            fields: {
+              [columnId]: newValue,
+            },
+            completed: false,
+          };
+        } else {
+          // Update existing endpoint
+          updatedDisplayEndpoints[endpointIndex] = {
+            ...currentEndpoint,
+            fields: {
+              ...currentEndpoint.fields,
+              [columnId]: newValue,
+            },
+          };
+        }
       });
 
-      onEndpointsChange(updatedEndpoints);
+      // Filter out blank rows and save only real endpoints
+      const realEndpoints = updatedDisplayEndpoints.filter(ep => !ep.id.startsWith('blank-'));
+      onEndpointsChange(realEndpoints);
     },
-    [endpoints, templateFields, onEndpointsChange]
+    [displayEndpoints, templateFields, onEndpointsChange]
   );
 
   const handleAddRow = () => {
@@ -163,17 +198,26 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
   // Handle cell focus to detect clicks on action column
   const handleFocusLocation = useCallback(
     (location: { rowId: string | number; columnId: string | number }) => {
-      if (location.columnId === 'actions' && location.rowId !== 'header' && endpoints.length > 1) {
-        // Delay to ensure it's a click not just navigation
-        setTimeout(() => {
-          const updatedEndpoints = endpoints.filter((ep) => ep.id !== location.rowId);
-          if (updatedEndpoints.length !== endpoints.length) {
+      if (location.columnId === 'actions' && location.rowId !== 'header') {
+        const rowIdStr = location.rowId as string;
+        const isBlankRow = rowIdStr.startsWith('blank-');
+
+        // Don't delete blank rows, just skip
+        if (isBlankRow) {
+          return;
+        }
+
+        // Only delete real endpoints, and keep at least 1
+        const realEndpoints = displayEndpoints.filter(ep => !ep.id.startsWith('blank-'));
+        if (realEndpoints.length > 1) {
+          setTimeout(() => {
+            const updatedEndpoints = endpoints.filter((ep) => ep.id !== location.rowId);
             onEndpointsChange(updatedEndpoints);
-          }
-        }, 100);
+          }, 100);
+        }
       }
     },
-    [endpoints, onEndpointsChange]
+    [endpoints, displayEndpoints, onEndpointsChange]
   );
 
   return (
