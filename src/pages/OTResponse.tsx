@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Send, AlertTriangle, CheckCircle, Plus, Trash2, Play } from 'lucide-react';
+import { Send, Play } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { Endpoint, Message, TemplateField } from '../types';
+import { Endpoint, Message } from '../types';
 import { StatusBadge, Comment } from '../components/JiraComponents';
+import { DataPointGrid } from '../components/DataPointGrid';
 
 const OTResponse: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,19 +22,12 @@ const OTResponse: React.FC = () => {
   const [needNetworkIT, setNeedNetworkIT] = useState(false);
 
   const [localEndpoints, setLocalEndpoints] = useState<Endpoint[]>(request?.endpoints || []);
-  const [expandedEndpoints, setExpandedEndpoints] = useState<Set<string>>(new Set());
-
   const [messageText, setMessageText] = useState('');
-  const [issueModalOpen, setIssueModalOpen] = useState(false);
-  const [issueEndpointId, setIssueEndpointId] = useState<string>('');
-  const [issueType, setIssueType] = useState('');
-  const [issueDescription, setIssueDescription] = useState('');
   const [hasStarted, setHasStarted] = useState(request?.status !== 'pending');
 
   useEffect(() => {
     if (request && request.endpoints.length > 0) {
       setLocalEndpoints(request.endpoints);
-      setExpandedEndpoints(new Set(request.endpoints.map(ep => ep.id)));
     }
   }, [request]);
 
@@ -91,50 +85,6 @@ const OTResponse: React.FC = () => {
     }
   };
 
-  const handleFieldChange = (endpointId: string, fieldName: string, value: any) => {
-    setLocalEndpoints((prev) =>
-      prev.map((ep) => {
-        if (ep.id === endpointId) {
-          const newFields = { ...ep.fields, [fieldName]: value };
-          const completion = getEndpointCompletion({ ...ep, fields: newFields });
-          return {
-            ...ep,
-            fields: newFields,
-            completed: completion.filled === completion.total,
-          };
-        }
-        return ep;
-      })
-    );
-  };
-
-  const handleAddEndpoint = () => {
-    const newEndpoint: Endpoint = {
-      id: 'ep-' + Date.now(),
-      fields: {},
-      completed: false,
-    };
-    setLocalEndpoints([...localEndpoints, newEndpoint]);
-    setExpandedEndpoints((prev) => new Set([...prev, newEndpoint.id]));
-  };
-
-  const handleRemoveEndpoint = (endpointId: string) => {
-    if (localEndpoints.length > 1) {
-      setLocalEndpoints(localEndpoints.filter((ep) => ep.id !== endpointId));
-    }
-  };
-
-  const toggleExpanded = (endpointId: string) => {
-    setExpandedEndpoints((prev) => {
-      const next = new Set(prev);
-      if (next.has(endpointId)) {
-        next.delete(endpointId);
-      } else {
-        next.add(endpointId);
-      }
-      return next;
-    });
-  };
 
   const handleSendMessage = () => {
     if (messageText.trim()) {
@@ -154,41 +104,6 @@ const OTResponse: React.FC = () => {
     }
   };
 
-  const handleMarkIssue = (endpointId: string) => {
-    setIssueEndpointId(endpointId);
-    setIssueModalOpen(true);
-  };
-
-  const handleSubmitIssue = () => {
-    if (issueType && issueDescription.trim()) {
-      const updatedEndpoints = localEndpoints.map((ep) =>
-        ep.id === issueEndpointId
-          ? { ...ep, issueFlagged: true, issueDescription }
-          : ep
-      );
-      setLocalEndpoints(updatedEndpoints);
-
-      const issueMessage: Message = {
-        id: 'msg-' + Date.now(),
-        timestamp: new Date().toISOString(),
-        from: currentUser.name,
-        role: currentUser.role,
-        message: `⚠️ Issue: ${issueDescription}`,
-        issueFlagged: true,
-      };
-      addMessage(request.id, issueMessage);
-
-      updateRequest(request.id, {
-        status: 'blocked',
-        endpoints: updatedEndpoints,
-      });
-
-      setIssueModalOpen(false);
-      setIssueEndpointId('');
-      setIssueType('');
-      setIssueDescription('');
-    }
-  };
 
   const handleSaveDraft = () => {
     const connection = {
@@ -226,57 +141,6 @@ const OTResponse: React.FC = () => {
     }
   };
 
-  const renderField = (field: TemplateField, endpointId: string, value: any) => {
-    const commonClasses =
-      'w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm';
-
-    switch (field.type) {
-      case 'select':
-        return (
-          <select
-            value={value || ''}
-            onChange={(e) => handleFieldChange(endpointId, field.name, e.target.value)}
-            className={commonClasses}
-          >
-            <option value="">Select...</option>
-            {field.options?.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        );
-      case 'textarea':
-        return (
-          <textarea
-            value={value || ''}
-            onChange={(e) => handleFieldChange(endpointId, field.name, e.target.value)}
-            placeholder={field.placeholder}
-            className={`${commonClasses} resize-none h-16`}
-          />
-        );
-      case 'number':
-        return (
-          <input
-            type="number"
-            value={value || ''}
-            onChange={(e) => handleFieldChange(endpointId, field.name, e.target.value)}
-            placeholder={field.placeholder}
-            className={commonClasses}
-          />
-        );
-      default:
-        return (
-          <input
-            type="text"
-            value={value || ''}
-            onChange={(e) => handleFieldChange(endpointId, field.name, e.target.value)}
-            placeholder={field.placeholder}
-            className={commonClasses}
-          />
-        );
-    }
-  };
 
   // Initial pending view
   if (!hasStarted && request.status === 'pending') {
@@ -401,10 +265,8 @@ const OTResponse: React.FC = () => {
         </div>
       </div>
 
-      {/* Split View */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
-        {/* Left Panel - Configuration (60%) */}
-        <div className="lg:col-span-3 space-y-6">
+      {/* Main Content - Full Width */}
+      <div className="space-y-6 mb-6">
           {/* Connection Configuration */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">CONNECTION (you determine these)</h2>
@@ -490,291 +352,95 @@ const OTResponse: React.FC = () => {
             </div>
           </div>
 
-          {/* Data Points Section */}
+          {/* Data Points Section - Excel Grid */}
           {protocol && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  DATA POINTS (map IT's needs to technical config)
-                </h2>
-              </div>
-
-              {localEndpoints.map((endpoint, index) => {
-                const isExpanded = expandedEndpoints.has(endpoint.id);
-                const completion = getEndpointCompletion(endpoint);
-                const name = endpoint.fields.name || `Data Point ${index + 1}`;
-
-                return (
-                  <div
-                    key={endpoint.id}
-                    className={`bg-white border rounded-lg overflow-hidden ${
-                      endpoint.issueFlagged ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                  >
-                    {/* Header */}
-                    <div
-                      onClick={() => toggleExpanded(endpoint.id)}
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <button className="text-gray-600">
-                          {isExpanded ? (
-                            <ChevronDown className="w-5 h-5" />
-                          ) : (
-                            <ChevronUp className="w-5 h-5" />
-                          )}
-                        </button>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {name}
-                            {endpoint.issueFlagged && (
-                              <span className="ml-2 text-red-600 text-sm">⚠️ BLOCKED</span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {completion.filled}/{completion.total} fields
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {completion.filled === completion.total && completion.total > 0 ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <span className="text-sm text-gray-500">
-                            {completion.total > 0 ? Math.round((completion.filled / completion.total) * 100) : 0}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    {isExpanded && (
-                      <div className="border-t border-gray-200 p-4 space-y-4">
-                        <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                          <span className="font-medium">From IT request:</span> Map this to technical configuration below
-                        </div>
-
-                        {template?.fieldGroups ? (
-                          template.fieldGroups.map((group) => (
-                            <div key={group.name}>
-                              <h4 className="text-sm font-semibold text-gray-900 mb-2">{group.name}</h4>
-                              <div className="grid grid-cols-1 gap-3">
-                                {group.fields.map((field) => (
-                                  <div key={field.name}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      {field.label}
-                                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </label>
-                                    {renderField(field, endpoint.id, endpoint.fields[field.name])}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="grid grid-cols-1 gap-3">
-                            {template?.fields?.map((field) => (
-                              <div key={field.name}>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {field.label}
-                                  {field.required && <span className="text-red-500 ml-1">*</span>}
-                                </label>
-                                {renderField(field, endpoint.id, endpoint.fields[field.name])}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex items-center space-x-2 pt-2 border-t border-gray-200">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkIssue(endpoint.id);
-                            }}
-                            className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
-                          >
-                            <AlertTriangle className="w-4 h-4 mr-1" />
-                            Mark Issue
-                          </button>
-                          {localEndpoints.length > 1 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveEndpoint(endpoint.id);
-                              }}
-                              className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              <button
-                onClick={handleAddEndpoint}
-                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors text-sm"
-              >
-                <Plus className="w-4 h-4 inline mr-1" />
-                Add Data Point
-              </button>
-            </div>
+            <DataPointGrid
+              endpoints={localEndpoints}
+              templateFields={allFields}
+              onEndpointsChange={setLocalEndpoints}
+            />
           )}
 
-          {/* Action Buttons */}
-          {protocol && (
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleSaveDraft}
-                className="flex-1 px-6 py-2 text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                Save Draft
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!allComplete}
-                title={!allComplete ? `${totalCompletion.total - totalCompletion.filled} required fields remaining` : ''}
-                className={`flex-1 px-6 py-2 rounded-lg transition-colors ${
-                  allComplete
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Submit to IT
-              </button>
-            </div>
-          )}
+      </div>
+
+      {/* Action Buttons */}
+      {protocol && (
+        <div className="flex items-center space-x-4 mb-6">
+          <button
+            onClick={handleSaveDraft}
+            className="flex-1 px-6 py-2 text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            Save Draft
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!allComplete}
+            title={!allComplete ? `${totalCompletion.total - totalCompletion.filled} required fields remaining` : ''}
+            className={`flex-1 px-6 py-2 rounded-lg transition-colors ${
+              allComplete
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Submit to IT
+          </button>
+        </div>
+      )}
+
+      {/* Comments Section - Full Width Below */}
+      <div className="bg-white border border-gray-200 rounded-lg">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">Comments</h3>
+          <p className="text-sm text-gray-500">{request.conversation.length} comments</p>
         </div>
 
-        {/* Right Panel - Chat (40%) */}
-        <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg h-[calc(100vh-20rem)] flex flex-col sticky top-6">
-            {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">Discussion with IT</h3>
-              <p className="text-sm text-gray-500">{request.conversation.length} messages</p>
+        {/* Comments List */}
+        <div className="p-4 max-h-96 overflow-y-auto">
+          {request.conversation.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500">No comments yet. Ask a question if you need clarification!</p>
             </div>
+          ) : (
+            <div className="space-y-0">
+              {request.conversation.map((msg) => (
+                <Comment key={msg.id} message={msg} />
+              ))}
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
 
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {request.conversation.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-500">No comments yet. Ask a question if you need clarification!</p>
-                </div>
-              ) : (
-                <div className="space-y-0">
-                  {request.conversation.map((msg) => (
-                    <Comment key={msg.id} message={msg} />
-                  ))}
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Chat Input */}
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-end space-x-2">
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="Ask a question or provide clarification..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-                  rows={2}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!messageText.trim()}
-                  className={`p-2 rounded-lg transition-colors ${
-                    messageText.trim()
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+        {/* Comment Input */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-end space-x-2">
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder="Add a comment..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+              rows={3}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!messageText.trim()}
+              className={`p-2 rounded-lg transition-colors ${
+                messageText.trim()
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Send className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Issue Modal */}
-      {issueModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Report Issue</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  What's the issue?
-                </label>
-                <div className="space-y-2">
-                  {[
-                    "Requested data doesn't exist",
-                    'Need more time to find information',
-                    'Request is unclear',
-                    'Need IT to clarify',
-                  ].map((option) => (
-                    <label key={option} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value={option}
-                        checked={issueType === option}
-                        onChange={(e) => setIssueType(e.target.value)}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <span className="text-sm text-gray-700">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Explain:</label>
-                <textarea
-                  value={issueDescription}
-                  onChange={(e) => setIssueDescription(e.target.value)}
-                  placeholder="Provide details about the issue..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows={4}
-                />
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setIssueModalOpen(false);
-                  setIssueType('');
-                  setIssueDescription('');
-                }}
-                className="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitIssue}
-                disabled={!issueType || !issueDescription.trim()}
-                className={`flex-1 px-4 py-2 rounded-lg ${
-                  issueType && issueDescription.trim()
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Mark Issue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
