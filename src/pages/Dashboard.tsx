@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, MoreHorizontal } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { RequestStatus } from '../types';
-import { PriorityBadge, StatusBadge } from '../components/JiraComponents';
+import { StatusBadge } from '../components/JiraComponents';
 
 const Dashboard: React.FC = () => {
   const { requests, currentUser } = useAppContext();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | RequestStatus>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
 
   // Filter requests
@@ -23,11 +22,10 @@ const Dashboard: React.FC = () => {
         req.location.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || req.priority === priorityFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority;
+      return matchesSearch && matchesStatus;
     });
-  }, [requests, searchQuery, statusFilter, priorityFilter]);
+  }, [requests, searchQuery, statusFilter]);
 
   const handleRequestClick = (requestId: string, status: RequestStatus) => {
     if (status === 'complete') {
@@ -137,18 +135,6 @@ const Dashboard: React.FC = () => {
               <option value="complete">Done</option>
             </select>
 
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Priorities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-
             <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
               <Filter className="w-4 h-4" />
             </button>
@@ -177,9 +163,6 @@ const Dashboard: React.FC = () => {
                   Status
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Asset
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
@@ -205,7 +188,7 @@ const Dashboard: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-12 text-center text-gray-500">
                     No requests found matching your filters.
                   </td>
                 </tr>
@@ -229,9 +212,6 @@ const Dashboard: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <StatusBadge status={req.status} />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <PriorityBadge priority={req.priority} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-gray-900">{req.assetName}</div>

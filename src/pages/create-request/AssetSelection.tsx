@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Search, FolderOpen, Folder, ChevronDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, FolderOpen, Folder } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useRequestCreation } from '../../context/RequestCreationContext';
 import { Asset } from '../../types';
@@ -10,10 +10,16 @@ const AssetSelection: React.FC = () => {
   const { assets } = useAppContext();
   const { setSelectedAsset, setStep } = useRequestCreation();
 
-  const [viewMode, setViewMode] = useState<'directory' | 'uns'>('directory');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'uns' | 'manual'>('uns');
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  // Manual input state
+  const [manualCompany, setManualCompany] = useState('');
+  const [manualPlant, setManualPlant] = useState('');
+  const [manualShop, setManualShop] = useState('');
+  const [manualLine, setManualLine] = useState('');
+  const [manualStation, setManualStation] = useState('');
 
   // Group assets by company → plant → shop → line → station for UNS view
   const unsStructure = React.useMemo(() => {
@@ -44,13 +50,36 @@ const AssetSelection: React.FC = () => {
     return structure;
   }, [assets]);
 
-  const filteredAssets = assets.filter(
-    (asset) =>
-      asset.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique values for manual dropdowns
+  const companies = React.useMemo(() => [...new Set(assets.map(a => a.company))].sort(), [assets]);
+  const plants = React.useMemo(() => {
+    if (!manualCompany) return [];
+    return [...new Set(assets.filter(a => a.company === manualCompany).map(a => a.plant))].sort();
+  }, [assets, manualCompany]);
+  const shops = React.useMemo(() => {
+    if (!manualCompany || !manualPlant) return [];
+    return [...new Set(assets.filter(a => a.company === manualCompany && a.plant === manualPlant).map(a => a.shop))].sort();
+  }, [assets, manualCompany, manualPlant]);
+  const lines = React.useMemo(() => {
+    if (!manualCompany || !manualPlant || !manualShop) return [];
+    return [...new Set(assets.filter(a => a.company === manualCompany && a.plant === manualPlant && a.shop === manualShop).map(a => a.line))].sort();
+  }, [assets, manualCompany, manualPlant, manualShop]);
+  const stations = React.useMemo(() => {
+    if (!manualCompany || !manualPlant || !manualShop || !manualLine) return [];
+    return [...new Set(assets.filter(a => a.company === manualCompany && a.plant === manualPlant && a.shop === manualShop && a.line === manualLine).map(a => a.station))].sort();
+  }, [assets, manualCompany, manualPlant, manualShop, manualLine]);
+
+  // Filter assets based on manual input
+  const manualFilteredAssets = React.useMemo(() => {
+    return assets.filter(asset => {
+      if (manualCompany && asset.company !== manualCompany) return false;
+      if (manualPlant && asset.plant !== manualPlant) return false;
+      if (manualShop && asset.shop !== manualShop) return false;
+      if (manualLine && asset.line !== manualLine) return false;
+      if (manualStation && asset.station !== manualStation) return false;
+      return true;
+    });
+  }, [assets, manualCompany, manualPlant, manualShop, manualLine, manualStation]);
 
   const selectedAsset = assets.find((a) => a.id === selectedAssetId);
 
@@ -76,11 +105,9 @@ const AssetSelection: React.FC = () => {
 
   const renderUNSTree = () => {
     return (
-      <div className="border border-gray-200 rounded-lg p-4">
+      <div className="border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
         {Object.entries(unsStructure).map(([company, plants]) => {
           const companyExpanded = expandedNodes.has(company);
-
-          // Count total assets in company
           const companyAssetCount = Object.values(plants).reduce((sum, shops) =>
             sum + Object.values(shops).reduce((sum2, lines) =>
               sum2 + Object.values(lines).reduce((sum3, stations) =>
@@ -89,7 +116,6 @@ const AssetSelection: React.FC = () => {
 
           return (
             <div key={company} className="mb-2">
-              {/* Company Level */}
               <div
                 onClick={() => toggleNode(company)}
                 className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
@@ -100,7 +126,6 @@ const AssetSelection: React.FC = () => {
                 <span className="text-xs text-gray-500">({companyAssetCount} assets)</span>
               </div>
 
-              {/* Plant Level */}
               {companyExpanded && (
                 <div className="ml-6">
                   {Object.entries(plants).map(([plant, shops]) => {
@@ -123,7 +148,6 @@ const AssetSelection: React.FC = () => {
                           <span className="text-xs text-gray-500">({plantAssetCount})</span>
                         </div>
 
-                        {/* Shop Level */}
                         {plantExpanded && (
                           <div className="ml-6">
                             {Object.entries(shops).map(([shop, lines]) => {
@@ -145,7 +169,6 @@ const AssetSelection: React.FC = () => {
                                     <span className="text-xs text-gray-500">({shopAssetCount})</span>
                                   </div>
 
-                                  {/* Line Level */}
                                   {shopExpanded && (
                                     <div className="ml-5">
                                       {Object.entries(lines).map(([line, stations]) => {
@@ -166,7 +189,6 @@ const AssetSelection: React.FC = () => {
                                               <span className="text-xs text-gray-500">({lineAssetCount})</span>
                                             </div>
 
-                                            {/* Station/Equipment Level */}
                                             {lineExpanded && (
                                               <div className="ml-5">
                                                 {Object.entries(stations).map(([station, assets]) => {
@@ -187,7 +209,6 @@ const AssetSelection: React.FC = () => {
                                                         <span className="text-xs text-gray-500">({assets.length})</span>
                                                       </div>
 
-                                                      {/* Equipment/Assets */}
                                                       {stationExpanded && (
                                                         <div className="ml-5 mt-1 space-y-1">
                                                           {assets.map((asset) => (
@@ -282,16 +303,6 @@ const AssetSelection: React.FC = () => {
         <div className="flex items-center space-x-4">
           <span className="text-sm font-medium text-gray-700">Browse:</span>
           <button
-            onClick={() => setViewMode('directory')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === 'directory'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Asset Directory
-          </button>
-          <button
             onClick={() => setViewMode('uns')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'uns'
@@ -301,81 +312,186 @@ const AssetSelection: React.FC = () => {
           >
             UNS Tree
           </button>
+          <button
+            onClick={() => setViewMode('manual')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'manual'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Manual Input
+          </button>
         </div>
       </div>
 
       {/* Asset Selection */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          {viewMode === 'directory' ? 'Asset Directory' : 'Unified Namespace (UNS)'}
+          {viewMode === 'uns' ? 'Unified Namespace (UNS)' : 'Manual Asset Path'}
         </h2>
 
-        {viewMode === 'directory' && (
-          <>
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by asset ID, name, type, or location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+        {viewMode === 'uns' ? (
+          renderUNSTree()
+        ) : (
+          <div className="space-y-4">
+            {/* Manual Input Form */}
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                <select
+                  value={manualCompany}
+                  onChange={(e) => {
+                    setManualCompany(e.target.value);
+                    setManualPlant('');
+                    setManualShop('');
+                    setManualLine('');
+                    setManualStation('');
+                    setSelectedAssetId('');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select company...</option>
+                  {companies.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
+
+              {manualCompany && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plant</label>
+                  <select
+                    value={manualPlant}
+                    onChange={(e) => {
+                      setManualPlant(e.target.value);
+                      setManualShop('');
+                      setManualLine('');
+                      setManualStation('');
+                      setSelectedAssetId('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select plant...</option>
+                    {plants.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {manualCompany && manualPlant && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shop</label>
+                  <select
+                    value={manualShop}
+                    onChange={(e) => {
+                      setManualShop(e.target.value);
+                      setManualLine('');
+                      setManualStation('');
+                      setSelectedAssetId('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select shop...</option>
+                    {shops.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {manualCompany && manualPlant && manualShop && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Line</label>
+                  <select
+                    value={manualLine}
+                    onChange={(e) => {
+                      setManualLine(e.target.value);
+                      setManualStation('');
+                      setSelectedAssetId('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select line...</option>
+                    {lines.map(l => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {manualCompany && manualPlant && manualShop && manualLine && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Station</label>
+                  <select
+                    value={manualStation}
+                    onChange={(e) => {
+                      setManualStation(e.target.value);
+                      setSelectedAssetId('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select station...</option>
+                    {stations.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
-            {/* Asset List */}
-            <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
-              {filteredAssets.map((asset) => (
-                <div
-                  key={asset.id}
-                  onClick={() => setSelectedAssetId(asset.id)}
-                  className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
-                    selectedAssetId === asset.id
-                      ? 'bg-blue-50 border-l-4 border-l-blue-600'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-gray-900">{asset.id}</span>
-                        <span className="text-sm text-gray-500">-</span>
-                        <span className="text-gray-900">{asset.name}</span>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <span className="font-medium">Type:</span> {asset.type}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <span className="font-medium">Location:</span> {asset.location}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <span className="font-medium">Owner:</span> {asset.owner}
+            {/* Show matching assets */}
+            {manualCompany && manualFilteredAssets.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  Matching Assets ({manualFilteredAssets.length})
+                </h3>
+                <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
+                  {manualFilteredAssets.map((asset) => (
+                    <div
+                      key={asset.id}
+                      onClick={() => setSelectedAssetId(asset.id)}
+                      className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
+                        selectedAssetId === asset.id
+                          ? 'bg-blue-50 border-l-4 border-l-blue-600'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-medium text-gray-900">{asset.id}</span>
+                            <span className="text-sm text-gray-500">-</span>
+                            <span className="text-gray-900">{asset.name}</span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Type:</span> {asset.type}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Location:</span> {asset.location}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Owner:</span> {asset.owner}
+                          </div>
+                        </div>
+                        {selectedAssetId === asset.id && (
+                          <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {selectedAssetId === asset.id && (
-                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {viewMode === 'uns' && (
-          <div className="max-h-96 overflow-y-auto">
-            {renderUNSTree()}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -393,7 +509,7 @@ const AssetSelection: React.FC = () => {
               <span className="text-blue-700 font-medium">Type:</span>{' '}
               <span className="text-blue-900">{selectedAsset.type}</span>
             </div>
-            <div>
+            <div className="col-span-2">
               <span className="text-blue-700 font-medium">Location:</span>{' '}
               <span className="text-blue-900">{selectedAsset.location}</span>
             </div>
