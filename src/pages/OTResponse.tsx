@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Send, Play } from 'lucide-react';
+import { Send, Play, AlertCircle, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Endpoint, Message } from '../types';
 import { StatusBadge, Comment } from '../components/JiraComponents';
@@ -24,6 +24,12 @@ const OTResponse: React.FC = () => {
   const [localEndpoints, setLocalEndpoints] = useState<Endpoint[]>(request?.endpoints || []);
   const [messageText, setMessageText] = useState('');
   const [hasStarted, setHasStarted] = useState(request?.status !== 'to-do');
+
+  // Block Request Modal State
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [blockReason, setBlockReason] = useState('');
+  const [offerAlternative, setOfferAlternative] = useState(false);
+  const [alternativeDescription, setAlternativeDescription] = useState('');
 
   useEffect(() => {
     if (request && request.endpoints.length > 0) {
@@ -81,7 +87,19 @@ const OTResponse: React.FC = () => {
   const handleStartConfiguring = () => {
     setHasStarted(true);
     if (request.status === 'to-do') {
-      updateRequest(request.id, { status: 'in-progress' });
+      const now = new Date().toISOString();
+      const newHistoryEntry = {
+        id: 'history-' + Date.now(),
+        status: 'in-progress' as const,
+        timestamp: now,
+        changedBy: currentUser.name,
+        note: 'Started working on configuration'
+      };
+
+      updateRequest(request.id, {
+        status: 'in-progress',
+        statusHistory: [...(request.statusHistory || []), newHistoryEntry]
+      });
     }
   };
 
@@ -125,16 +143,66 @@ const OTResponse: React.FC = () => {
         port: parseInt(port) || 502,
       };
 
+      const now = new Date().toISOString();
+      const newHistoryEntry = {
+        id: 'history-' + Date.now(),
+        status: 'review' as const,
+        timestamp: now,
+        changedBy: currentUser.name,
+        note: 'Submitted configuration for IT review'
+      };
+
       updateRequest(request.id, {
         connection,
         machineIdentifier: machineId,
         endpoints: localEndpoints,
         status: 'review',
         progressPercentage: 100,
+        submittedAt: now,
+        statusHistory: [...(request.statusHistory || []), newHistoryEntry]
       });
 
       navigate('/');
     }
+  };
+
+  const handleBlockRequest = () => {
+    if (!blockReason.trim()) {
+      return; // Require a reason
+    }
+
+    const now = new Date().toISOString();
+    const blockInfo = {
+      reason: blockReason,
+      alternativeOffered: offerAlternative,
+      alternativeDescription: offerAlternative ? alternativeDescription : undefined,
+      blockedAt: now,
+      blockedBy: currentUser.name
+    };
+
+    const newHistoryEntry = {
+      id: 'history-' + Date.now(),
+      status: 'blocked' as const,
+      timestamp: now,
+      changedBy: currentUser.name,
+      reason: blockReason,
+      note: offerAlternative ? `Blocked with alternative: ${alternativeDescription}` : 'Blocked - needs IT input'
+    };
+
+    updateRequest(request.id, {
+      status: 'blocked',
+      blockInfo,
+      needsITInput: true,
+      statusHistory: [...(request.statusHistory || []), newHistoryEntry]
+    });
+
+    // Reset modal state
+    setShowBlockModal(false);
+    setBlockReason('');
+    setOfferAlternative(false);
+    setAlternativeDescription('');
+
+    navigate('/');
   };
 
 
@@ -369,6 +437,13 @@ const OTResponse: React.FC = () => {
             Save Draft
           </button>
           <button
+            onClick={() => setShowBlockModal(true)}
+            className="flex-1 inline-flex items-center justify-center px-6 py-2 text-red-600 bg-white border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Block Request
+          </button>
+          <button
             onClick={handleSubmit}
             disabled={!allComplete}
             title={!allComplete ? `${totalCompletion.total - totalCompletion.filled} required fields remaining` : ''}
@@ -436,6 +511,116 @@ const OTResponse: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Block Request Modal */}
+      {showBlockModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Block Request</h2>
+              </div>
+              <button
+                onClick={() => setShowBlockModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800">
+                  <strong>Before blocking:</strong> Consider discussing the issue in comments first.
+                  Only block if you cannot proceed without IT making a decision.
+                </p>
+              </div>
+
+              {/* Reason Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for blocking <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  placeholder="e.g., Network firewall blocks this IP range. Cannot access PLC without network changes."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Explain why you cannot complete this request as specified
+                </p>
+              </div>
+
+              {/* Alternative Checkbox */}
+              <div>
+                <label className="flex items-start space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={offerAlternative}
+                    onChange={(e) => setOfferAlternative(e.target.checked)}
+                    className="w-4 h-4 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      I can offer an alternative approach
+                    </span>
+                    <p className="text-xs text-gray-500">
+                      If there's a different way to get the data IT needs, describe it below
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Alternative Description (conditional) */}
+              {offerAlternative && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Alternative approach
+                  </label>
+                  <textarea
+                    value={alternativeDescription}
+                    onChange={(e) => setAlternativeDescription(e.target.value)}
+                    placeholder="e.g., I cannot use Modbus TCP, but this PLC also supports OPC UA on port 4840. Would that work?"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                    rows={3}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowBlockModal(false);
+                  setBlockReason('');
+                  setOfferAlternative(false);
+                  setAlternativeDescription('');
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBlockRequest}
+                disabled={!blockReason.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  blockReason.trim()
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Block Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
