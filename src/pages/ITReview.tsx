@@ -166,52 +166,168 @@ const ITReview: React.FC = () => {
                 {request.connection?.host}:{request.connection?.port}
               </span>
             </div>
+            <div>
+              <span className="text-gray-600">Authentication:</span>{' '}
+              <span className="text-gray-900 capitalize">
+                {request.connection?.authMethod?.replace('-', ' ') || 'Not specified'}
+              </span>
+            </div>
+            {request.connection?.authReference && (
+              <div className="col-span-2">
+                <span className="text-gray-600">Auth Reference:</span>{' '}
+                <span className="text-gray-900 font-mono text-xs">
+                  {request.connection.authReference}
+                </span>
+                {request.connection?.authNote && (
+                  <span className="text-gray-500 text-xs ml-2">
+                    ({request.connection.authNote})
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Endpoints */}
-        <div className="mb-4 pb-4 border-b border-gray-200">
-          <div className="flex items-center space-x-2 mb-2">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <h3 className="text-sm font-semibold text-gray-700">Endpoints</h3>
-          </div>
-          <div className="space-y-3">
-            {request.endpoints.map((ep, index) => (
-              <div
-                key={ep.id}
-                className="p-3 bg-gray-50 border border-gray-200 rounded"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 mb-1">
-                      {ep.fields.name || `Endpoint ${index + 1}`}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                      {Object.entries(ep.fields).slice(1, 5).map(([key, value]) => (
-                        <div key={key}>
-                          <span className="capitalize">{key}:</span> {value}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {ep.issueFlagged ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-                      Modified
-                    </span>
-                  ) : (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  )}
-                </div>
-                {ep.issueFlagged && ep.issueDescription && (
-                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                    <p className="text-xs text-yellow-800">
-                      <span className="font-medium">Note:</span> {ep.issueDescription}
-                    </p>
-                  </div>
-                )}
+        {/* Endpoints - Excel-like Table View */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <h3 className="text-sm font-semibold text-gray-700">
+                Endpoints ({request.endpoints.length})
+              </h3>
+            </div>
+            <div className="flex items-center space-x-4 text-xs">
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                <span className="text-gray-600">Complete</span>
               </div>
-            ))}
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded"></div>
+                <span className="text-gray-600">Modified</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded"></div>
+                <span className="text-gray-600">Incomplete</span>
+              </div>
+            </div>
           </div>
+
+          {request.endpoints.length > 0 ? (
+            <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead className="bg-gray-100 sticky top-0 z-10">
+                    <tr>
+                      <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap w-12">
+                        #
+                      </th>
+                      <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap w-16">
+                        Status
+                      </th>
+                      {(() => {
+                        // Get all unique field keys from all endpoints
+                        const allKeys = new Set<string>();
+                        request.endpoints.forEach(ep => {
+                          Object.keys(ep.fields).forEach(key => allKeys.add(key));
+                        });
+                        const sortedKeys = Array.from(allKeys).sort((a, b) => {
+                          // Put 'name' first if it exists
+                          if (a === 'name') return -1;
+                          if (b === 'name') return 1;
+                          return a.localeCompare(b);
+                        });
+                        return sortedKeys.map(key => (
+                          <th
+                            key={key}
+                            className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
+                          >
+                            {key.split(/(?=[A-Z])/).join(' ').replace(/^\w/, c => c.toUpperCase())}
+                          </th>
+                        ));
+                      })()}
+                      <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap">
+                        Notes
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {request.endpoints.map((ep, index) => {
+                      // Calculate completion status
+                      const fieldCount = Object.keys(ep.fields).length;
+                      const filledCount = Object.values(ep.fields).filter(v => v && v.toString().trim()).length;
+                      const isComplete = ep.completed || (filledCount === fieldCount && fieldCount > 0);
+                      const isPartial = filledCount > 0 && filledCount < fieldCount;
+
+                      // Determine row background color
+                      let rowClass = 'bg-white hover:bg-gray-50';
+                      if (ep.issueFlagged) {
+                        rowClass = 'bg-yellow-50 hover:bg-yellow-100';
+                      } else if (isComplete) {
+                        rowClass = 'bg-green-50 hover:bg-green-100';
+                      } else if (isPartial) {
+                        rowClass = 'bg-gray-50 hover:bg-gray-100';
+                      }
+
+                      // Get all unique field keys (same as header)
+                      const allKeys = new Set<string>();
+                      request.endpoints.forEach(ep => {
+                        Object.keys(ep.fields).forEach(key => allKeys.add(key));
+                      });
+                      const sortedKeys = Array.from(allKeys).sort((a, b) => {
+                        if (a === 'name') return -1;
+                        if (b === 'name') return 1;
+                        return a.localeCompare(b);
+                      });
+
+                      return (
+                        <tr key={ep.id} className={rowClass}>
+                          <td className="border border-gray-300 px-3 py-2 text-center text-gray-600 font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="border border-gray-300 px-3 py-2 text-center">
+                            {ep.issueFlagged ? (
+                              <span className="inline-flex items-center justify-center w-full">
+                                <AlertCircle className="w-4 h-4 text-yellow-600" />
+                              </span>
+                            ) : isComplete ? (
+                              <span className="inline-flex items-center justify-center w-full">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center w-full text-xs text-gray-500">
+                                {filledCount}/{fieldCount}
+                              </span>
+                            )}
+                          </td>
+                          {sortedKeys.map(key => (
+                            <td
+                              key={key}
+                              className="border border-gray-300 px-3 py-2 text-gray-900"
+                            >
+                              {ep.fields[key] !== undefined && ep.fields[key] !== null && ep.fields[key] !== ''
+                                ? ep.fields[key]
+                                : <span className="text-gray-400 italic">-</span>
+                              }
+                            </td>
+                          ))}
+                          <td className="border border-gray-300 px-3 py-2 text-xs text-gray-700">
+                            {ep.issueDescription || (
+                              <span className="text-gray-400 italic">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-gray-300 rounded-lg p-8 text-center text-gray-500">
+              No endpoints configured yet
+            </div>
+          )}
         </div>
 
         {/* Validation */}

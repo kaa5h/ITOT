@@ -21,6 +21,11 @@ const OTResponse: React.FC = () => {
   const [machineId, setMachineId] = useState(request?.machineIdentifier || '');
   const [needNetworkIT, setNeedNetworkIT] = useState(false);
 
+  // Authentication State (references external secrets only)
+  const [authMethod, setAuthMethod] = useState(request?.connection?.authMethod || 'none');
+  const [authReference, setAuthReference] = useState(request?.connection?.authReference || '');
+  const [authNote, setAuthNote] = useState(request?.connection?.authNote || '');
+
   const [localEndpoints, setLocalEndpoints] = useState<Endpoint[]>(request?.endpoints || []);
   const [messageText, setMessageText] = useState('');
   const [hasStarted, setHasStarted] = useState(request?.status !== 'to-do');
@@ -124,6 +129,9 @@ const OTResponse: React.FC = () => {
       protocol,
       host,
       port: parseInt(port) || 502,
+      authMethod,
+      authReference: authReference || undefined,
+      authNote: authNote || undefined,
     };
 
     updateRequest(request.id, {
@@ -141,6 +149,9 @@ const OTResponse: React.FC = () => {
         protocol,
         host,
         port: parseInt(port) || 502,
+        authMethod,
+        authReference: authReference || undefined,
+        authNote: authNote || undefined,
       };
 
       const now = new Date().toISOString();
@@ -398,6 +409,66 @@ const OTResponse: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              {/* Authentication Method */}
+              <div className="pt-4 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Authentication Method <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={authMethod}
+                  onChange={(e) => setAuthMethod(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="none">None (Unsecured)</option>
+                  <option value="certificate">Certificate (TLS/SSL)</option>
+                  <option value="username-password">Username/Password</option>
+                  <option value="api-key">API Key</option>
+                  <option value="oauth">OAuth/Token</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">How does this machine authenticate connections?</p>
+              </div>
+
+              {/* Authentication Reference (conditional) */}
+              {authMethod !== 'none' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Secret Reference <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={authReference}
+                      onChange={(e) => setAuthReference(e.target.value)}
+                      placeholder={
+                        authMethod === 'certificate' ? 'e.g., CN=prod-plc-01.company.com or vault/certs/plc-prod'
+                        : authMethod === 'api-key' ? 'e.g., vault/api-keys/scada-system'
+                        : 'e.g., vault/credentials/plc-accounts'
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Reference to where credentials are stored (Vault path, PKI cert CN, Key ID, etc.)
+                      <br />
+                      <span className="text-amber-600 font-medium">⚠️ Never enter actual passwords or secrets here</span>
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Authentication Note (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={authNote}
+                      onChange={(e) => setAuthNote(e.target.value)}
+                      placeholder="e.g., Uses production PKI cert, auto-rotates monthly"
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Additional context about the authentication setup</p>
+                  </div>
+                </>
+              )}
 
               {/* Network IT Checkbox */}
               <div>

@@ -55,6 +55,10 @@ export interface Connection {
   host?: string;
   port?: number;
   otFilled?: boolean;
+  // Authentication (references external secrets, does NOT store credentials)
+  authMethod?: 'certificate' | 'username-password' | 'api-key' | 'oauth' | 'none';
+  authReference?: string; // Reference to external secret (e.g., vault path, cert CN, key ID)
+  authNote?: string; // Additional context (e.g., "Uses production PKI cert")
 }
 
 // Endpoint Types
