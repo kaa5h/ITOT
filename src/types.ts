@@ -79,12 +79,32 @@ export interface Message {
 
 // Request Status Types
 export type RequestStatus =
-  | 'pending'
-  | 'in-progress'
-  | 'discussion-active'
-  | 'blocked'
-  | 'it-review'
-  | 'complete';
+  | 'draft'           // IT is writing the request
+  | 'to-do'           // Sent to OT, not started yet
+  | 'in-progress'     // OT is actively working
+  | 'blocked'         // Cannot complete, needs IT decision
+  | 'review'          // OT submitted, awaiting IT approval
+  | 'complete'        // Approved and exported
+  | 'cancelled';      // Request was cancelled
+
+// Status History Entry
+export interface StatusHistoryEntry {
+  id: string;
+  status: RequestStatus;
+  timestamp: string;
+  changedBy: string;
+  reason?: string;
+  note?: string;
+}
+
+// Block Information
+export interface BlockInfo {
+  reason: string;
+  alternativeOffered: boolean;
+  alternativeDescription?: string;
+  blockedAt: string;
+  blockedBy: string;
+}
 
 // Priority Types
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical';
@@ -143,6 +163,15 @@ export interface Request {
   exportedAt?: string;
   exportId?: string;
   progressPercentage?: number;
+  statusHistory: StatusHistoryEntry[]; // Complete history of status changes
+  blockInfo?: BlockInfo; // Information about current block (if status is 'blocked')
+  needsITInput?: boolean; // Flag for "⚠️ Needs IT input" in discussions
+  submittedAt?: string; // When OT submitted for review
+  approvedAt?: string; // When IT approved
+  approvedBy?: string; // Who approved
+  cancelledAt?: string; // When cancelled
+  cancelledBy?: string; // Who cancelled
+  cancellationReason?: string; // Why cancelled
 }
 
 // Request Creation State (simplified for IT)
