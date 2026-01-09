@@ -163,7 +163,7 @@ export interface Request {
   exportedAt?: string;
   exportId?: string;
   progressPercentage?: number;
-  statusHistory: StatusHistoryEntry[]; // Complete history of status changes
+  statusHistory?: StatusHistoryEntry[]; // Complete history of status changes (migrated automatically)
   blockInfo?: BlockInfo; // Information about current block (if status is 'blocked')
   needsITInput?: boolean; // Flag for "⚠️ Needs IT input" in discussions
   submittedAt?: string; // When OT submitted for review

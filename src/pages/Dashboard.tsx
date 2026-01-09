@@ -21,7 +21,7 @@ const Dashboard: React.FC = () => {
       // Role-based filtering
       const matchesRole =
         currentUser.role === 'Admin' ? true : // Admin sees all
-        currentUser.role === 'IT' ? (req.createdBy === currentUser.name || req.status === 'it-review') : // IT sees created by them or awaiting review
+        currentUser.role === 'IT' ? (req.createdBy === currentUser.name || req.status === 'review') : // IT sees created by them or awaiting review
         currentUser.role === 'OT' ? req.assignedTo === currentUser.name : // OT sees assigned to them
         false;
 
@@ -45,10 +45,10 @@ const Dashboard: React.FC = () => {
   const handleRequestClick = (requestId: string, status: RequestStatus) => {
     if (status === 'complete') {
       navigate(`/request/${requestId}/export`);
-    } else if (status === 'it-review' && currentUser.role === 'IT') {
+    } else if (status === 'review' && currentUser.role === 'IT') {
       navigate(`/request/${requestId}/review`);
     } else if (
-      (status === 'pending' || status === 'in-progress' || status === 'discussion-active' || status === 'blocked') &&
+      (status === 'to-do' || status === 'in-progress' || status === 'blocked') &&
       currentUser.role === 'OT'
     ) {
       navigate(`/request/${requestId}/respond`);
@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
               <option value="in-progress">In Progress</option>
               <option value="discussion-active">Discussion</option>
               <option value="blocked">Blocked</option>
-              <option value="it-review">Review</option>
+              <option value="review">Review</option>
               <option value="complete">Done</option>
             </select>
 
@@ -272,7 +272,7 @@ const Dashboard: React.FC = () => {
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                         >
                           {req.status === 'complete' ? 'View' :
-                           req.status === 'it-review' && currentUser.role === 'IT' ? 'Review' :
+                           req.status === 'review' && currentUser.role === 'IT' ? 'Review' :
                            'Open'}
                         </button>
                         <button className="p-1 text-gray-400 hover:text-gray-600">

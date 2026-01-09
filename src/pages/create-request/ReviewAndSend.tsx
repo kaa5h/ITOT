@@ -24,17 +24,18 @@ const ReviewAndSend: React.FC = () => {
   };
 
   const handleSend = () => {
+    const now = new Date().toISOString();
     const newRequest: Request = {
       id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
       assetId: selectedAsset.id,
       assetName: selectedAsset.name,
       location: selectedAsset.location,
-      status: 'pending',
+      status: 'to-do',
       priority: 'Medium',
       createdBy: currentUser.name,
       assignedTo: selectedAsset.owner,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       description,
       timeline,
       estimatedDataPoints,
@@ -42,6 +43,13 @@ const ReviewAndSend: React.FC = () => {
       conversation: [],
       activity: [],
       progressPercentage: 0,
+      statusHistory: [{
+        id: 'history-' + Date.now(),
+        status: 'to-do',
+        timestamp: now,
+        changedBy: currentUser.name,
+        note: 'Request created and sent to OT'
+      }]
     };
 
     addRequest(newRequest);

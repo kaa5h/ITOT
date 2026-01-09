@@ -31,21 +31,23 @@ export const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) =>
 // Status Badge Component - JIRA style with colors
 export const StatusBadge: React.FC<{ status: RequestStatus }> = ({ status }) => {
   const styles = {
-    pending: 'bg-gray-100 text-gray-800 border-gray-300',
+    draft: 'bg-gray-100 text-gray-800 border-gray-300',
+    'to-do': 'bg-gray-100 text-gray-800 border-gray-300',
     'in-progress': 'bg-blue-100 text-blue-800 border-blue-300',
-    'discussion-active': 'bg-purple-100 text-purple-800 border-purple-300',
     blocked: 'bg-red-100 text-red-800 border-red-300',
-    'it-review': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    review: 'bg-purple-100 text-purple-800 border-purple-300',
     complete: 'bg-green-100 text-green-800 border-green-300',
+    cancelled: 'bg-gray-100 text-gray-600 border-gray-300',
   };
 
   const labels = {
-    pending: 'To Do',
+    draft: 'Draft',
+    'to-do': 'To Do',
     'in-progress': 'In Progress',
-    'discussion-active': 'Discussion',
     blocked: 'Blocked',
-    'it-review': 'Review',
-    complete: 'Done',
+    review: 'Review',
+    complete: 'Complete',
+    cancelled: 'Cancelled',
   };
 
   return (

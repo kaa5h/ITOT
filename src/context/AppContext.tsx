@@ -17,9 +17,26 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+  // Migrate old requests to include statusHistory
+  const migrateRequest = (req: any): Request => {
+    if (!req.statusHistory) {
+      return {
+        ...req,
+        statusHistory: [{
+          id: 'history-initial',
+          status: req.status,
+          timestamp: req.createdAt,
+          changedBy: req.createdBy,
+          note: 'Request created'
+        }]
+      };
+    }
+    return req;
+  };
+
   const [currentUser, setCurrentUser] = useState<User>(initialUsers[0]); // Default to Maria Lopez (IT)
   const [users] = useState<User[]>(initialUsers);
-  const [requests, setRequests] = useState<Request[]>(initialRequests);
+  const [requests, setRequests] = useState<Request[]>(initialRequests.map(migrateRequest));
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const addRequest = (request: Request) => {
@@ -62,14 +79,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         let link = '';
 
         // OT submits to IT for review
-        if (updates.status === 'it-review') {
+        if (updates.status === 'review') {
           notificationTo = newRequest.createdBy;
           notificationMessage = `${newRequest.assignedTo} submitted ${newRequest.assetName} for your review`;
           notificationType = 'request_submitted';
           link = `/request/${id}/review`;
         }
         // IT or other status changes back to OT
-        else if (oldRequest.status === 'it-review' || updates.status === 'blocked' || updates.status === 'discussion-active') {
+        else if (oldRequest.status === 'review' || updates.status === 'blocked') {
           notificationTo = newRequest.assignedTo;
           notificationMessage = `Status changed to ${updates.status} for ${newRequest.assetName}`;
           link = `/request/${id}/respond`;

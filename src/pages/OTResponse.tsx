@@ -23,7 +23,7 @@ const OTResponse: React.FC = () => {
 
   const [localEndpoints, setLocalEndpoints] = useState<Endpoint[]>(request?.endpoints || []);
   const [messageText, setMessageText] = useState('');
-  const [hasStarted, setHasStarted] = useState(request?.status !== 'pending');
+  const [hasStarted, setHasStarted] = useState(request?.status !== 'to-do');
 
   useEffect(() => {
     if (request && request.endpoints.length > 0) {
@@ -80,7 +80,7 @@ const OTResponse: React.FC = () => {
 
   const handleStartConfiguring = () => {
     setHasStarted(true);
-    if (request.status === 'pending') {
+    if (request.status === 'to-do') {
       updateRequest(request.id, { status: 'in-progress' });
     }
   };
@@ -97,10 +97,6 @@ const OTResponse: React.FC = () => {
       };
       addMessage(request.id, newMessage);
       setMessageText('');
-
-      if (request.status === 'pending' || request.status === 'in-progress') {
-        updateRequest(request.id, { status: 'discussion-active' });
-      }
     }
   };
 
@@ -133,7 +129,7 @@ const OTResponse: React.FC = () => {
         connection,
         machineIdentifier: machineId,
         endpoints: localEndpoints,
-        status: 'it-review',
+        status: 'review',
         progressPercentage: 100,
       });
 
@@ -142,8 +138,8 @@ const OTResponse: React.FC = () => {
   };
 
 
-  // Initial pending view
-  if (!hasStarted && request.status === 'pending') {
+  // Initial to-do view
+  if (!hasStarted && request.status === 'to-do') {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
