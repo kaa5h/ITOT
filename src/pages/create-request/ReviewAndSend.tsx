@@ -161,27 +161,56 @@ const ReviewAndSend: React.FC = () => {
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Request Summary</h2>
 
-        {/* Machine */}
+        {/* Selected Assets */}
         <div className="mb-4 pb-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Machine</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Asset ID:</span>{' '}
-              <span className="text-gray-900 font-medium">{selectedAsset.id}</span>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            {selectedAssets.length === 1 ? 'Asset' : `Assets (${selectedAssets.length})`}
+          </h3>
+          {selectedAssets.length === 1 ? (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Asset ID:</span>{' '}
+                <span className="text-gray-900 font-medium">{selectedAssets[0].id}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Name:</span>{' '}
+                <span className="text-gray-900">{selectedAssets[0].name}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Type:</span>{' '}
+                <span className="text-gray-900">{selectedAssets[0].type}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Location:</span>{' '}
+                <span className="text-gray-900">{selectedAssets[0].location}</span>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-600">Name:</span>{' '}
-              <span className="text-gray-900">{selectedAsset.name}</span>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {selectedAssets.map((asset) => (
+                <div key={asset.id} className="bg-gray-50 border border-gray-200 rounded p-3">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-600">ID:</span>{' '}
+                      <span className="text-gray-900 font-medium">{asset.id}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Name:</span>{' '}
+                      <span className="text-gray-900">{asset.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Type:</span>{' '}
+                      <span className="text-gray-900">{asset.type}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Location:</span>{' '}
+                      <span className="text-gray-900">{asset.location}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <span className="text-gray-600">Type:</span>{' '}
-              <span className="text-gray-900">{selectedAsset.type}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Location:</span>{' '}
-              <span className="text-gray-900">{selectedAsset.location}</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* What You're Requesting */}
@@ -266,7 +295,7 @@ const ReviewAndSend: React.FC = () => {
 
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-blue-800">
-            <strong>Note:</strong> These operations apply to all endpoints in this request. OT does not need to specify operations per endpoint.
+            <strong>Note:</strong> These operations apply to all endpoints in {selectedAssets.length > 1 ? 'these requests' : 'this request'}. OT does not need to specify operations per endpoint.
           </p>
         </div>
       </div>
@@ -381,10 +410,16 @@ const ReviewAndSend: React.FC = () => {
         </div>
         <div className="text-sm text-green-800">
           <p className="mb-2">
-            This request will be assigned to: <span className="font-medium">{selectedAsset.owner}</span>
+            {selectedAssets.length === 1 ? (
+              <>This request will be assigned to: <span className="font-medium">{selectedAssets[0].owner}</span></>
+            ) : (
+              <>
+                <span className="font-medium">{selectedAssets.length} requests</span> will be created and assigned to respective asset owners.
+              </>
+            )}
           </p>
           <p className="text-green-700">
-            They will determine the protocol, configure connection details, and map your conceptual
+            OT personnel will determine the protocol, configure connection details, and map your conceptual
             requirements to technical endpoint configurations.
           </p>
         </div>
@@ -394,7 +429,7 @@ const ReviewAndSend: React.FC = () => {
       <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
         <p className="text-sm text-blue-800">
           <strong>What happens next:</strong> OT personnel will review your requirements, determine which
-          protocol this machine uses, configure the network connection, and translate your conceptual data
+          protocol {selectedAssets.length > 1 ? 'these machines use' : 'this machine uses'}, configure the network connection{selectedAssets.length > 1 ? 's' : ''}, and translate your conceptual data
           needs into specific technical configurations. They may ask clarifying questions via the built-in
           chat if needed.
         </p>
@@ -413,7 +448,7 @@ const ReviewAndSend: React.FC = () => {
             />
             <Mail className="w-5 h-5 text-gray-600" />
             <span className="text-sm text-gray-700">
-              Send email notification to {selectedAsset.owner}
+              Send email notification{selectedAssets.length > 1 && 's'} to asset owner{selectedAssets.length > 1 && 's'}
             </span>
           </label>
           <label className="flex items-center space-x-3 cursor-pointer">
@@ -424,7 +459,7 @@ const ReviewAndSend: React.FC = () => {
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <Bell className="w-5 h-5 text-gray-600" />
-            <span className="text-sm text-gray-700">Send in-app notification</span>
+            <span className="text-sm text-gray-700">Send in-app notification{selectedAssets.length > 1 && 's'}</span>
           </label>
         </div>
       </div>
@@ -442,7 +477,7 @@ const ReviewAndSend: React.FC = () => {
           onClick={handleSend}
           className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
-          Send Request
+          Send Request{selectedAssets.length > 1 && `s (${selectedAssets.length})`}
           <CheckCircle className="w-5 h-5 ml-2" />
         </button>
       </div>

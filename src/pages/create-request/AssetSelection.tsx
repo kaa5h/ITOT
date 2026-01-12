@@ -137,6 +137,18 @@ const AssetSelection: React.FC = () => {
     setSelectedAssetIds(new Set());
   };
 
+  // Helper function to get all assets under a hierarchy level
+  const getAssetsForHierarchy = (company?: string, plant?: string, shop?: string, line?: string, station?: string): Asset[] => {
+    return assets.filter(asset => {
+      if (company && asset.company !== company) return false;
+      if (plant && asset.plant !== plant) return false;
+      if (shop && asset.shop !== shop) return false;
+      if (line && asset.line !== line) return false;
+      if (station && asset.station !== station) return false;
+      return true;
+    });
+  };
+
   const handleNext = () => {
     if (selectedAssetsList.length > 0) {
       setSelectedAssets(selectedAssetsList);
@@ -156,16 +168,34 @@ const AssetSelection: React.FC = () => {
                 sum3 + Object.values(stations).reduce((sum4, assets) =>
                   sum4 + assets.length, 0), 0), 0), 0);
 
+          const companyAssets = getAssetsForHierarchy(company);
+          const allCompanySelected = companyAssets.every(a => selectedAssetIds.has(a.id));
+
           return (
             <div key={company} className="mb-2">
-              <div
-                onClick={() => toggleNode(company)}
-                className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-              >
-                {companyExpanded ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
-                {companyExpanded ? <FolderOpen className="w-5 h-5 text-blue-600" /> : <Folder className="w-5 h-5 text-gray-600" />}
-                <span className="font-semibold text-gray-900">{company}</span>
-                <span className="text-xs text-gray-500">({companyAssetCount} assets)</span>
+              <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                <div
+                  onClick={() => toggleNode(company)}
+                  className="flex items-center space-x-2 flex-1 cursor-pointer"
+                >
+                  {companyExpanded ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
+                  {companyExpanded ? <FolderOpen className="w-5 h-5 text-blue-600" /> : <Folder className="w-5 h-5 text-gray-600" />}
+                  <span className="font-semibold text-gray-900">{company}</span>
+                  <span className="text-xs text-gray-500">({companyAssetCount} assets)</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (allCompanySelected) {
+                      deselectAllAssets(companyAssets);
+                    } else {
+                      selectAllAssets(companyAssets);
+                    }
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  {allCompanySelected ? 'Deselect All' : 'Select All'}
+                </button>
               </div>
 
               {companyExpanded && (
@@ -180,14 +210,35 @@ const AssetSelection: React.FC = () => {
 
                     return (
                       <div key={plantId} className="mb-2">
-                        <div
-                          onClick={() => toggleNode(plantId)}
-                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                        >
-                          {plantExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-600" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-600" />}
-                          {plantExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-gray-500" />}
-                          <span className="font-medium text-gray-900">{plant}</span>
-                          <span className="text-xs text-gray-500">({plantAssetCount})</span>
+                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                          <div
+                            onClick={() => toggleNode(plantId)}
+                            className="flex items-center space-x-2 flex-1 cursor-pointer"
+                          >
+                            {plantExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-600" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-600" />}
+                            {plantExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-gray-500" />}
+                            <span className="font-medium text-gray-900">{plant}</span>
+                            <span className="text-xs text-gray-500">({plantAssetCount})</span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const plantAssets = getAssetsForHierarchy(company, plant);
+                              const allPlantSelected = plantAssets.every(a => selectedAssetIds.has(a.id));
+                              if (allPlantSelected) {
+                                deselectAllAssets(plantAssets);
+                              } else {
+                                selectAllAssets(plantAssets);
+                              }
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
+                          >
+                            {(() => {
+                              const plantAssets = getAssetsForHierarchy(company, plant);
+                              const allPlantSelected = plantAssets.every(a => selectedAssetIds.has(a.id));
+                              return allPlantSelected ? 'Deselect All' : 'Select All';
+                            })()}
+                          </button>
                         </div>
 
                         {plantExpanded && (
@@ -199,16 +250,34 @@ const AssetSelection: React.FC = () => {
                                 sum + Object.values(stations).reduce((sum2, assets) =>
                                   sum2 + assets.length, 0), 0);
 
+                              const shopAssets = getAssetsForHierarchy(company, plant, shop);
+                              const allShopSelected = shopAssets.every(a => selectedAssetIds.has(a.id));
+
                               return (
                                 <div key={shopId} className="mb-1">
-                                  <div
-                                    onClick={() => toggleNode(shopId)}
-                                    className="flex items-center space-x-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer"
-                                  >
-                                    {shopExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
-                                    {shopExpanded ? <FolderOpen className="w-3.5 h-3.5 text-blue-400" /> : <Folder className="w-3.5 h-3.5 text-gray-400" />}
-                                    <span className="text-sm text-gray-800">{shop}</span>
-                                    <span className="text-xs text-gray-500">({shopAssetCount})</span>
+                                  <div className="flex items-center justify-between p-1.5 hover:bg-gray-50 rounded">
+                                    <div
+                                      onClick={() => toggleNode(shopId)}
+                                      className="flex items-center space-x-2 flex-1 cursor-pointer"
+                                    >
+                                      {shopExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
+                                      {shopExpanded ? <FolderOpen className="w-3.5 h-3.5 text-blue-400" /> : <Folder className="w-3.5 h-3.5 text-gray-400" />}
+                                      <span className="text-sm text-gray-800">{shop}</span>
+                                      <span className="text-xs text-gray-500">({shopAssetCount})</span>
+                                    </div>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (allShopSelected) {
+                                          deselectAllAssets(shopAssets);
+                                        } else {
+                                          selectAllAssets(shopAssets);
+                                        }
+                                      }}
+                                      className="text-xs text-blue-600 hover:text-blue-800 px-2 py-0.5 rounded hover:bg-blue-50"
+                                    >
+                                      {allShopSelected ? 'Deselect' : 'Select'}
+                                    </button>
                                   </div>
 
                                   {shopExpanded && (
@@ -219,16 +288,34 @@ const AssetSelection: React.FC = () => {
                                         const lineAssetCount = Object.values(stations).reduce((sum, assets) =>
                                           sum + assets.length, 0);
 
+                                        const lineAssets = getAssetsForHierarchy(company, plant, shop, line);
+                                        const allLineSelected = lineAssets.every(a => selectedAssetIds.has(a.id));
+
                                         return (
                                           <div key={lineId} className="mb-1">
-                                            <div
-                                              onClick={() => toggleNode(lineId)}
-                                              className="flex items-center space-x-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer"
-                                            >
-                                              {lineExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
-                                              {lineExpanded ? <FolderOpen className="w-3 h-3 text-blue-300" /> : <Folder className="w-3 h-3 text-gray-300" />}
-                                              <span className="text-sm text-gray-700">{line}</span>
-                                              <span className="text-xs text-gray-500">({lineAssetCount})</span>
+                                            <div className="flex items-center justify-between p-1.5 hover:bg-gray-50 rounded">
+                                              <div
+                                                onClick={() => toggleNode(lineId)}
+                                                className="flex items-center space-x-2 flex-1 cursor-pointer"
+                                              >
+                                                {lineExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
+                                                {lineExpanded ? <FolderOpen className="w-3 h-3 text-blue-300" /> : <Folder className="w-3 h-3 text-gray-300" />}
+                                                <span className="text-sm text-gray-700">{line}</span>
+                                                <span className="text-xs text-gray-500">({lineAssetCount})</span>
+                                              </div>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (allLineSelected) {
+                                                    deselectAllAssets(lineAssets);
+                                                  } else {
+                                                    selectAllAssets(lineAssets);
+                                                  }
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800 px-2 py-0.5 rounded hover:bg-blue-50"
+                                              >
+                                                {allLineSelected ? 'Deselect' : 'Select'}
+                                              </button>
                                             </div>
 
                                             {lineExpanded && (
