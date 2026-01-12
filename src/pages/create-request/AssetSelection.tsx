@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FolderOpen, Folder, X, CheckSquare, Square } from 'lucide-react';
+import { ChevronRight, ChevronDown, FolderOpen, Folder } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useRequestCreation } from '../../context/RequestCreationContext';
 import { Asset } from '../../types';
@@ -8,10 +8,10 @@ import { Asset } from '../../types';
 const AssetSelection: React.FC = () => {
   const navigate = useNavigate();
   const { assets } = useAppContext();
-  const { setSelectedAssets, setStep } = useRequestCreation();
+  const { setSelectedAsset, setStep } = useRequestCreation();
 
   const [viewMode, setViewMode] = useState<'uns' | 'manual'>('uns');
-  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
+  const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Manual input state
@@ -81,9 +81,9 @@ const AssetSelection: React.FC = () => {
     });
   }, [assets, manualCompany, manualPlant, manualShop, manualLine, manualStation]);
 
-  const selectedAssetsList = React.useMemo(() => {
-    return assets.filter(a => selectedAssetIds.has(a.id));
-  }, [assets, selectedAssetIds]);
+  const selectedAsset = React.useMemo(() => {
+    return assets.find(a => a.id === selectedAssetId);
+  }, [assets, selectedAssetId]);
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -97,61 +97,9 @@ const AssetSelection: React.FC = () => {
     });
   };
 
-  const toggleAssetSelection = (assetId: string) => {
-    setSelectedAssetIds(prev => {
-      const next = new Set(prev);
-      if (next.has(assetId)) {
-        next.delete(assetId);
-      } else {
-        next.add(assetId);
-      }
-      return next;
-    });
-  };
-
-  const selectAllAssets = (assetsToSelect: Asset[]) => {
-    setSelectedAssetIds(prev => {
-      const next = new Set(prev);
-      assetsToSelect.forEach(asset => next.add(asset.id));
-      return next;
-    });
-  };
-
-  const deselectAllAssets = (assetsToDeselect: Asset[]) => {
-    setSelectedAssetIds(prev => {
-      const next = new Set(prev);
-      assetsToDeselect.forEach(asset => next.delete(asset.id));
-      return next;
-    });
-  };
-
-  const removeAsset = (assetId: string) => {
-    setSelectedAssetIds(prev => {
-      const next = new Set(prev);
-      next.delete(assetId);
-      return next;
-    });
-  };
-
-  const clearAll = () => {
-    setSelectedAssetIds(new Set());
-  };
-
-  // Helper function to get all assets under a hierarchy level
-  const getAssetsForHierarchy = (company?: string, plant?: string, shop?: string, line?: string, station?: string): Asset[] => {
-    return assets.filter(asset => {
-      if (company && asset.company !== company) return false;
-      if (plant && asset.plant !== plant) return false;
-      if (shop && asset.shop !== shop) return false;
-      if (line && asset.line !== line) return false;
-      if (station && asset.station !== station) return false;
-      return true;
-    });
-  };
-
   const handleNext = () => {
-    if (selectedAssetsList.length > 0) {
-      setSelectedAssets(selectedAssetsList);
+    if (selectedAsset) {
+      setSelectedAsset(selectedAsset);
       setStep(2);
       navigate('/create-request/describe');
     }
@@ -168,34 +116,16 @@ const AssetSelection: React.FC = () => {
                 sum3 + Object.values(stations).reduce((sum4, assets) =>
                   sum4 + assets.length, 0), 0), 0), 0);
 
-          const companyAssets = getAssetsForHierarchy(company);
-          const allCompanySelected = companyAssets.every(a => selectedAssetIds.has(a.id));
-
           return (
             <div key={company} className="mb-2">
-              <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                <div
-                  onClick={() => toggleNode(company)}
-                  className="flex items-center space-x-2 flex-1 cursor-pointer"
-                >
-                  {companyExpanded ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
-                  {companyExpanded ? <FolderOpen className="w-5 h-5 text-blue-600" /> : <Folder className="w-5 h-5 text-gray-600" />}
-                  <span className="font-semibold text-gray-900">{company}</span>
-                  <span className="text-xs text-gray-500">({companyAssetCount} assets)</span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (allCompanySelected) {
-                      deselectAllAssets(companyAssets);
-                    } else {
-                      selectAllAssets(companyAssets);
-                    }
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                >
-                  {allCompanySelected ? 'Deselect All' : 'Select All'}
-                </button>
+              <div
+                onClick={() => toggleNode(company)}
+                className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+              >
+                {companyExpanded ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
+                {companyExpanded ? <FolderOpen className="w-5 h-5 text-blue-600" /> : <Folder className="w-5 h-5 text-gray-600" />}
+                <span className="font-semibold text-gray-900">{company}</span>
+                <span className="text-xs text-gray-500">({companyAssetCount} assets)</span>
               </div>
 
               {companyExpanded && (
@@ -210,35 +140,14 @@ const AssetSelection: React.FC = () => {
 
                     return (
                       <div key={plantId} className="mb-2">
-                        <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                          <div
-                            onClick={() => toggleNode(plantId)}
-                            className="flex items-center space-x-2 flex-1 cursor-pointer"
-                          >
-                            {plantExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-600" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-600" />}
-                            {plantExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-gray-500" />}
-                            <span className="font-medium text-gray-900">{plant}</span>
-                            <span className="text-xs text-gray-500">({plantAssetCount})</span>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const plantAssets = getAssetsForHierarchy(company, plant);
-                              const allPlantSelected = plantAssets.every(a => selectedAssetIds.has(a.id));
-                              if (allPlantSelected) {
-                                deselectAllAssets(plantAssets);
-                              } else {
-                                selectAllAssets(plantAssets);
-                              }
-                            }}
-                            className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
-                          >
-                            {(() => {
-                              const plantAssets = getAssetsForHierarchy(company, plant);
-                              const allPlantSelected = plantAssets.every(a => selectedAssetIds.has(a.id));
-                              return allPlantSelected ? 'Deselect All' : 'Select All';
-                            })()}
-                          </button>
+                        <div
+                          onClick={() => toggleNode(plantId)}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        >
+                          {plantExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-600" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-600" />}
+                          {plantExpanded ? <FolderOpen className="w-4 h-4 text-blue-500" /> : <Folder className="w-4 h-4 text-gray-500" />}
+                          <span className="font-medium text-gray-900">{plant}</span>
+                          <span className="text-xs text-gray-500">({plantAssetCount})</span>
                         </div>
 
                         {plantExpanded && (
@@ -250,34 +159,16 @@ const AssetSelection: React.FC = () => {
                                 sum + Object.values(stations).reduce((sum2, assets) =>
                                   sum2 + assets.length, 0), 0);
 
-                              const shopAssets = getAssetsForHierarchy(company, plant, shop);
-                              const allShopSelected = shopAssets.every(a => selectedAssetIds.has(a.id));
-
                               return (
                                 <div key={shopId} className="mb-1">
-                                  <div className="flex items-center justify-between p-1.5 hover:bg-gray-50 rounded">
-                                    <div
-                                      onClick={() => toggleNode(shopId)}
-                                      className="flex items-center space-x-2 flex-1 cursor-pointer"
-                                    >
-                                      {shopExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
-                                      {shopExpanded ? <FolderOpen className="w-3.5 h-3.5 text-blue-400" /> : <Folder className="w-3.5 h-3.5 text-gray-400" />}
-                                      <span className="text-sm text-gray-800">{shop}</span>
-                                      <span className="text-xs text-gray-500">({shopAssetCount})</span>
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (allShopSelected) {
-                                          deselectAllAssets(shopAssets);
-                                        } else {
-                                          selectAllAssets(shopAssets);
-                                        }
-                                      }}
-                                      className="text-xs text-blue-600 hover:text-blue-800 px-2 py-0.5 rounded hover:bg-blue-50"
-                                    >
-                                      {allShopSelected ? 'Deselect' : 'Select'}
-                                    </button>
+                                  <div
+                                    onClick={() => toggleNode(shopId)}
+                                    className="flex items-center space-x-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                                  >
+                                    {shopExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
+                                    {shopExpanded ? <FolderOpen className="w-3.5 h-3.5 text-blue-400" /> : <Folder className="w-3.5 h-3.5 text-gray-400" />}
+                                    <span className="text-sm text-gray-800">{shop}</span>
+                                    <span className="text-xs text-gray-500">({shopAssetCount})</span>
                                   </div>
 
                                   {shopExpanded && (
@@ -288,34 +179,16 @@ const AssetSelection: React.FC = () => {
                                         const lineAssetCount = Object.values(stations).reduce((sum, assets) =>
                                           sum + assets.length, 0);
 
-                                        const lineAssets = getAssetsForHierarchy(company, plant, shop, line);
-                                        const allLineSelected = lineAssets.every(a => selectedAssetIds.has(a.id));
-
                                         return (
                                           <div key={lineId} className="mb-1">
-                                            <div className="flex items-center justify-between p-1.5 hover:bg-gray-50 rounded">
-                                              <div
-                                                onClick={() => toggleNode(lineId)}
-                                                className="flex items-center space-x-2 flex-1 cursor-pointer"
-                                              >
-                                                {lineExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
-                                                {lineExpanded ? <FolderOpen className="w-3 h-3 text-blue-300" /> : <Folder className="w-3 h-3 text-gray-300" />}
-                                                <span className="text-sm text-gray-700">{line}</span>
-                                                <span className="text-xs text-gray-500">({lineAssetCount})</span>
-                                              </div>
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  if (allLineSelected) {
-                                                    deselectAllAssets(lineAssets);
-                                                  } else {
-                                                    selectAllAssets(lineAssets);
-                                                  }
-                                                }}
-                                                className="text-xs text-blue-600 hover:text-blue-800 px-2 py-0.5 rounded hover:bg-blue-50"
-                                              >
-                                                {allLineSelected ? 'Deselect' : 'Select'}
-                                              </button>
+                                            <div
+                                              onClick={() => toggleNode(lineId)}
+                                              className="flex items-center space-x-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer"
+                                            >
+                                              {lineExpanded ? <ChevronDown className="w-3 h-3 text-gray-600" /> : <ChevronRight className="w-3 h-3 text-gray-600" />}
+                                              {lineExpanded ? <FolderOpen className="w-3 h-3 text-blue-300" /> : <Folder className="w-3 h-3 text-gray-300" />}
+                                              <span className="text-sm text-gray-700">{line}</span>
+                                              <span className="text-xs text-gray-500">({lineAssetCount})</span>
                                             </div>
 
                                             {lineExpanded && (
@@ -339,54 +212,30 @@ const AssetSelection: React.FC = () => {
                                                       </div>
 
                                                       {stationExpanded && (
-                                                        <div className="ml-5 mt-1">
-                                                          {/* Select All button for station */}
-                                                          <button
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              const allSelected = assets.every(a => selectedAssetIds.has(a.id));
-                                                              if (allSelected) {
-                                                                deselectAllAssets(assets);
-                                                              } else {
-                                                                selectAllAssets(assets);
-                                                              }
-                                                            }}
-                                                            className="text-xs text-blue-600 hover:text-blue-800 mb-1 px-2"
-                                                          >
-                                                            {assets.every(a => selectedAssetIds.has(a.id)) ? 'Deselect All' : 'Select All'} ({assets.length})
-                                                          </button>
-                                                          <div className="space-y-1">
-                                                            {assets.map((asset) => (
-                                                              <div
-                                                                key={asset.id}
-                                                                onClick={() => toggleAssetSelection(asset.id)}
-                                                                className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
-                                                                  selectedAssetIds.has(asset.id)
-                                                                    ? 'bg-blue-50 border-l-2 border-l-blue-600'
-                                                                    : 'hover:bg-gray-50'
-                                                                }`}
-                                                              >
-                                                                <div className="flex items-center space-x-2 flex-1">
-                                                                  {selectedAssetIds.has(asset.id) ? (
-                                                                    <CheckSquare className="w-4 h-4 text-blue-600" />
-                                                                  ) : (
-                                                                    <Square className="w-4 h-4 text-gray-400" />
-                                                                  )}
-                                                                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                                                                  </svg>
-                                                                  <div className="flex-1">
-                                                                    <div className="flex items-center space-x-2">
-                                                                      <span className="text-xs font-medium text-gray-900">{asset.id}</span>
-                                                                      <span className="text-xs text-gray-500">-</span>
-                                                                      <span className="text-xs text-gray-700">{asset.name}</span>
-                                                                    </div>
-                                                                    <div className="text-xs text-gray-500">{asset.type}</div>
-                                                                  </div>
+                                                        <div className="ml-5 mt-1 space-y-1">
+                                                          {assets.map((asset) => (
+                                                            <div
+                                                              key={asset.id}
+                                                              onClick={() => setSelectedAssetId(asset.id)}
+                                                              className={`flex items-center space-x-2 p-2 rounded cursor-pointer transition-colors ${
+                                                                selectedAssetId === asset.id
+                                                                  ? 'bg-blue-50 border-l-2 border-l-blue-600'
+                                                                  : 'hover:bg-gray-50'
+                                                              }`}
+                                                            >
+                                                              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                                              </svg>
+                                                              <div className="flex-1">
+                                                                <div className="flex items-center space-x-2">
+                                                                  <span className="text-xs font-medium text-gray-900">{asset.id}</span>
+                                                                  <span className="text-xs text-gray-500">-</span>
+                                                                  <span className="text-xs text-gray-700">{asset.name}</span>
                                                                 </div>
+                                                                <div className="text-xs text-gray-500">{asset.type}</div>
                                                               </div>
-                                                            ))}
-                                                          </div>
+                                                            </div>
+                                                          ))}
                                                         </div>
                                                       )}
                                                     </div>
@@ -420,17 +269,8 @@ const AssetSelection: React.FC = () => {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create New Request</h1>
-            <p className="text-gray-600">Step 1 of 3: Select Assets</p>
-          </div>
-          {selectedAssetsList.length > 0 && (
-            <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
-              <span className="font-semibold">{selectedAssetsList.length}</span> selected
-            </div>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Create New Request</h1>
+        <p className="text-gray-600">Step 1 of 3: Select Asset</p>
       </div>
 
       {/* Progress Bar */}
@@ -594,59 +434,33 @@ const AssetSelection: React.FC = () => {
             {/* Show matching assets */}
             {manualCompany && manualFilteredAssets.length > 0 && (
               <div className="mt-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Matching Assets ({manualFilteredAssets.length})
-                  </h3>
-                  <button
-                    onClick={() => {
-                      const allSelected = manualFilteredAssets.every(a => selectedAssetIds.has(a.id));
-                      if (allSelected) {
-                        deselectAllAssets(manualFilteredAssets);
-                      } else {
-                        selectAllAssets(manualFilteredAssets);
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    {manualFilteredAssets.every(a => selectedAssetIds.has(a.id)) ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  Matching Assets ({manualFilteredAssets.length})
+                </h3>
                 <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
                   {manualFilteredAssets.map((asset) => (
                     <div
                       key={asset.id}
-                      onClick={() => toggleAssetSelection(asset.id)}
+                      onClick={() => setSelectedAssetId(asset.id)}
                       className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
-                        selectedAssetIds.has(asset.id)
+                        selectedAssetId === asset.id
                           ? 'bg-blue-50 border-l-4 border-l-blue-600'
                           : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3 flex-1">
-                          {selectedAssetIds.has(asset.id) ? (
-                            <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                          ) : (
-                            <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <span className="font-medium text-gray-900">{asset.id}</span>
-                              <span className="text-sm text-gray-500">-</span>
-                              <span className="text-gray-900">{asset.name}</span>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              <span className="font-medium">Type:</span> {asset.type}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              <span className="font-medium">Location:</span> {asset.location}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              <span className="font-medium">Owner:</span> {asset.owner}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="font-medium text-gray-900">{asset.id}</span>
+                        <span className="text-sm text-gray-500">-</span>
+                        <span className="text-gray-900">{asset.name}</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Type:</span> {asset.type}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Location:</span> {asset.location}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Owner:</span> {asset.owner}
                       </div>
                     </div>
                   ))}
@@ -657,48 +471,25 @@ const AssetSelection: React.FC = () => {
         )}
       </div>
 
-      {/* Selected Assets Panel */}
-      {selectedAssetsList.length > 0 && (
+      {/* Selected Asset Info */}
+      {selectedAsset && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-blue-900">
-              Selected Assets ({selectedAssetsList.length})
-            </h3>
-            <button
-              onClick={clearAll}
-              className="text-xs text-red-600 hover:text-red-800 font-medium"
-            >
-              Clear All
-            </button>
-          </div>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {selectedAssetsList.map((asset) => (
-              <div
-                key={asset.id}
-                className="bg-white border border-blue-200 rounded p-3 flex items-start justify-between"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="font-medium text-gray-900 text-sm">{asset.id}</span>
-                    <span className="text-xs text-gray-500">-</span>
-                    <span className="text-sm text-gray-700 truncate">{asset.name}</span>
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {asset.type} • {asset.location}
-                  </div>
-                  <div className="text-xs text-blue-700">
-                    Will be assigned to: {asset.owner}
-                  </div>
-                </div>
-                <button
-                  onClick={() => removeAsset(asset.id)}
-                  className="ml-3 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                  title="Remove asset"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+          <h3 className="text-sm font-semibold text-blue-900 mb-3">Selected Asset</h3>
+          <div className="bg-white border border-blue-200 rounded p-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="font-medium text-gray-900">{selectedAsset.id}</span>
+              <span className="text-sm text-gray-500">-</span>
+              <span className="text-gray-900">{selectedAsset.name}</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Type:</span> {selectedAsset.type}
+            </div>
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">Location:</span> {selectedAsset.location}
+            </div>
+            <div className="text-sm text-blue-700">
+              Will be assigned to: {selectedAsset.owner}
+            </div>
           </div>
         </div>
       )}
@@ -706,12 +497,7 @@ const AssetSelection: React.FC = () => {
       {/* Info Box */}
       <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6">
         <p className="text-sm text-amber-800">
-          <strong>Next step:</strong> You'll describe what data you need from{' '}
-          {selectedAssetsList.length === 1 ? 'this machine' : `these ${selectedAssetsList.length} machines`}.
-          {selectedAssetsList.length > 1 && ' The same data requirements will apply to all selected assets.'}
-        </p>
-        <p className="text-xs text-amber-700 mt-2">
-          <strong>Tip:</strong> Select multiple assets when they share the same data needs (e.g., all PLCs in Line 1).
+          <strong>Next step:</strong> You'll describe what data you need from this machine.
         </p>
       </div>
 
@@ -725,14 +511,14 @@ const AssetSelection: React.FC = () => {
         </button>
         <button
           onClick={handleNext}
-          disabled={selectedAssetsList.length === 0}
+          disabled={!selectedAsset}
           className={`inline-flex items-center px-6 py-2 rounded-lg transition-colors ${
-            selectedAssetsList.length > 0
+            selectedAsset
               ? 'bg-blue-600 text-white hover:bg-blue-700'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          Next: Describe Data{selectedAssetsList.length > 1 && ` (${selectedAssetsList.length} assets)`}
+          Next: Describe Data
           <ChevronRight className="w-5 h-5 ml-2" />
         </button>
       </div>

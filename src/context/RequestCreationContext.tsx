@@ -3,8 +3,7 @@ import { Asset } from '../types';
 
 interface RequestCreationState {
   step: number;
-  selectedAsset?: Asset; // Kept for backward compatibility
-  selectedAssets: Asset[]; // NEW: Support multiple assets
+  selectedAsset?: Asset;
   description: string;
   timeline: string;
   estimatedDataPoints: string;
@@ -12,8 +11,7 @@ interface RequestCreationState {
 
 interface RequestCreationContextType extends RequestCreationState {
   setStep: (step: number) => void;
-  setSelectedAsset: (asset: Asset) => void; // Kept for backward compatibility
-  setSelectedAssets: (assets: Asset[]) => void; // NEW: Set multiple assets
+  setSelectedAsset: (asset: Asset) => void;
   setDescription: (description: string) => void;
   setTimeline: (timeline: string) => void;
   setEstimatedDataPoints: (count: string) => void;
@@ -32,7 +30,7 @@ export const useRequestCreation = () => {
 
 const initialState: RequestCreationState = {
   step: 1,
-  selectedAssets: [],
+  selectedAsset: undefined,
   description: '',
   timeline: '',
   estimatedDataPoints: '1-5',
@@ -44,16 +42,7 @@ export const RequestCreationProvider: React.FC<{ children: ReactNode }> = ({ chi
   const value: RequestCreationContextType = {
     ...state,
     setStep: (step) => setState((prev) => ({ ...prev, step })),
-    setSelectedAsset: (selectedAsset) => setState((prev) => ({
-      ...prev,
-      selectedAsset,
-      selectedAssets: [selectedAsset] // Backward compatibility
-    })),
-    setSelectedAssets: (selectedAssets) => setState((prev) => ({
-      ...prev,
-      selectedAssets,
-      selectedAsset: selectedAssets[0] // Set first as primary for backward compatibility
-    })),
+    setSelectedAsset: (selectedAsset) => setState((prev) => ({ ...prev, selectedAsset })),
     setDescription: (description) => setState((prev) => ({ ...prev, description })),
     setTimeline: (timeline) => setState((prev) => ({ ...prev, timeline })),
     setEstimatedDataPoints: (estimatedDataPoints) => setState((prev) => ({ ...prev, estimatedDataPoints })),
