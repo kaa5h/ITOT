@@ -110,6 +110,30 @@ export interface BlockInfo {
   blockedBy: string;
 }
 
+// Operations Settings (IT-defined, applies to all endpoints)
+export interface OperationsSettings {
+  subscribe: boolean;  // Can subscribe to real-time updates
+  read: boolean;       // Can read values on demand
+  write: boolean;      // Can write values to endpoints
+}
+
+// Validation Rule
+export interface ValidationRule {
+  fieldName: string;
+  ruleType: 'regex' | 'format' | 'enum' | 'range';
+  value: string | string[] | { min?: number; max?: number };
+  errorMessage: string;
+}
+
+// Asset Selection (for multi-asset requests)
+export interface AssetSelection {
+  id: string;
+  assetId: string;
+  assetName: string;
+  location: string;
+  owner: string;
+}
+
 // Priority Types
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -147,21 +171,32 @@ export interface Notification {
 // Request Types
 export interface Request {
   id: string;
-  assetId: string;
-  assetName: string;
-  location: string;
+  // Asset information (supports single or multiple assets)
+  assetId: string; // Primary asset ID (for backward compatibility)
+  assetName: string; // Primary asset name
+  location: string; // Primary location
+  selectedAssets?: AssetSelection[]; // Multi-asset selection (if applicable)
+
   status: RequestStatus;
   priority: Priority;
   createdBy: string;
   assignedTo: string;
   createdAt: string;
   updatedAt: string;
+
+  // IT-defined requirements
   description: string; // IT's conceptual description of what data is needed
   timeline?: string; // When IT needs the data
   estimatedDataPoints?: string; // Approximate number of data points
+  operations?: OperationsSettings; // IT-defined operations (Subscribe/Read/Write) - applies globally
+  validationRules?: ValidationRule[]; // IT-defined validation rules for OT input
+  namingConvention?: string; // IT-defined naming convention template (e.g., "{Machine}_{Location}_{DataType}")
+
+  // OT-filled information
   machineIdentifier?: string; // OT's machine ID (filled by OT)
   connection?: Connection; // Filled by OT
   endpoints: Endpoint[]; // Filled by OT
+
   conversation: Message[];
   activity: Activity[];
   exportedAt?: string;

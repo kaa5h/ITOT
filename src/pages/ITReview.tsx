@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, MessageCircle, AlertCircle, X } from 'lucide-react';
+import { CheckCircle, MessageCircle, AlertCircle, X, Search, Filter } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import StatusBadge from '../components/StatusBadge';
 
@@ -14,6 +14,10 @@ const ITReview: React.FC = () => {
   // Request Changes Modal State
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [changeReason, setChangeReason] = useState('');
+
+  // Table filtering and search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'incomplete' | 'flagged'>('all');
 
   if (!request) {
     return (
@@ -107,6 +111,40 @@ const ITReview: React.FC = () => {
     navigate('/');
   };
 
+  // Filter and search endpoints
+  const filteredEndpoints = useMemo(() => {
+    if (!request) return [];
+
+    let filtered = request.endpoints;
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(ep => {
+        const fieldCount = Object.keys(ep.fields).length;
+        const filledCount = Object.values(ep.fields).filter(v => v && v.toString().trim()).length;
+        const isComplete = ep.completed || (filledCount === fieldCount && fieldCount > 0);
+
+        if (statusFilter === 'complete') return isComplete && !ep.issueFlagged;
+        if (statusFilter === 'incomplete') return !isComplete;
+        if (statusFilter === 'flagged') return ep.issueFlagged;
+        return true;
+      });
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(ep => {
+        // Search in all field values
+        const fieldValues = Object.values(ep.fields).map(v => String(v).toLowerCase());
+        const noteMatch = ep.issueDescription?.toLowerCase().includes(query);
+        return fieldValues.some(v => v.includes(query)) || noteMatch;
+      });
+    }
+
+    return filtered;
+  }, [request, statusFilter, searchQuery]);
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -188,13 +226,58 @@ const ITReview: React.FC = () => {
           </div>
         </div>
 
+        {/* Operations Settings (IT-Defined, Global) */}
+        {request.operations && (
+          <div className="mb-4 pb-4 border-b border-gray-200">
+            <div className="flex items-center space-x-2 mb-2">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <h3 className="text-sm font-semibold text-gray-700">Operations (IT-Defined, Applies to All Endpoints)</h3>
+            </div>
+            <div className="flex items-center space-x-6 text-sm">
+              <div className="flex items-center space-x-2">
+                {request.operations.subscribe ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <X className="w-4 h-4 text-gray-400" />
+                )}
+                <span className={request.operations.subscribe ? 'text-gray-900' : 'text-gray-400'}>
+                  Subscribe
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {request.operations.read ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <X className="w-4 h-4 text-gray-400" />
+                )}
+                <span className={request.operations.read ? 'text-gray-900' : 'text-gray-400'}>
+                  Read
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {request.operations.write ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <X className="w-4 h-4 text-gray-400" />
+                )}
+                <span className={request.operations.write ? 'text-gray-900' : 'text-gray-400'}>
+                  Write
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              These operations are defined by IT and apply consistently to all endpoints in this request
+            </p>
+          </div>
+        )}
+
         {/* Endpoints - Excel-like Table View */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <CheckCircle className="w-5 h-5 text-green-600" />
               <h3 className="text-sm font-semibold text-gray-700">
-                Endpoints ({request.endpoints.length})
+                Endpoints ({filteredEndpoints.length}{filteredEndpoints.length !== request.endpoints.length ? ` of ${request.endpoints.length}` : ''})
               </h3>
             </div>
             <div className="flex items-center space-x-4 text-xs">
@@ -213,10 +296,51 @@ const ITReview: React.FC = () => {
             </div>
           </div>
 
+          {/* Table Controls: Search and Filter */}
+          {request.endpoints.length > 0 && (
+            <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 mb-3 space-y-3">
+              {/* Search */}
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Search endpoints by name, address, or any field..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs font-medium text-gray-700">Filter:</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {(['all', 'complete', 'incomplete', 'flagged'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setStatusFilter(filter)}
+                      className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                        statusFilter === filter
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                      }`}
+                    >
+                      {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {request.endpoints.length > 0 ? (
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
-              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                <table className="w-full text-sm border-collapse">
+            filteredEndpoints.length > 0 ? (
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                  <table className="w-full text-sm border-collapse">
                   <thead className="bg-gray-100 sticky top-0 z-10">
                     <tr>
                       <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-gray-700 whitespace-nowrap w-12">
@@ -252,7 +376,7 @@ const ITReview: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {request.endpoints.map((ep, index) => {
+                    {filteredEndpoints.map((ep, index) => {
                       // Calculate completion status
                       const fieldCount = Object.keys(ep.fields).length;
                       const filledCount = Object.values(ep.fields).filter(v => v && v.toString().trim()).length;
@@ -323,6 +447,20 @@ const ITReview: React.FC = () => {
                 </table>
               </div>
             </div>
+            ) : (
+              <div className="border border-gray-300 rounded-lg p-8 text-center text-gray-500">
+                <p>No endpoints match your filters</p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                  className="mt-2 text-sm text-blue-600 hover:underline"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )
           ) : (
             <div className="border border-gray-300 rounded-lg p-8 text-center text-gray-500">
               No endpoints configured yet
