@@ -658,6 +658,11 @@ export const requests: Request[] = [
     updatedAt: '2026-01-06T14:33:15Z',
     description:
       'Need outlet temperature from primary cooling loop for energy monitoring dashboard. This will be used to track cooling efficiency and identify anomalies.',
+    operations: {
+      subscribe: true,
+      read: true,
+      write: false,
+    },
     connection: {
       protocol: 'modbus-tcp',
       host: '192.168.1.100',
@@ -688,6 +693,8 @@ export const requests: Request[] = [
       },
     ],
     conversation: conversation2,
+    approvedAt: '2026-01-06T14:30:00Z',
+    approvedBy: 'Maria Lopez',
     exportedAt: '2026-01-06T14:33:15Z',
     exportId: 'EXPORT-2026-01-06-143315',
     progressPercentage: 100,
@@ -707,6 +714,11 @@ export const requests: Request[] = [
     updatedAt: '2026-01-04T16:00:00Z',
     description:
       'Need pressure readings for safety monitoring system. Critical for compliance reporting.',
+    operations: {
+      subscribe: true,
+      read: false,
+      write: false,
+    },
     connection: {
       protocol: 'modbus-tcp',
       host: '192.168.1.105',
@@ -726,6 +738,8 @@ export const requests: Request[] = [
       },
     ],
     conversation: conversation3,
+    approvedAt: '2026-01-04T15:55:00Z',
+    approvedBy: 'David Chen',
     exportedAt: '2026-01-04T16:00:00Z',
     exportId: 'EXPORT-2026-01-04-160000',
     progressPercentage: 100,
@@ -745,6 +759,11 @@ export const requests: Request[] = [
     updatedAt: '2026-01-07T10:00:00Z',
     description:
       'Setting up energy monitoring for Building B. Need power consumption, voltage, and current data.',
+    operations: {
+      subscribe: true,
+      read: true,
+      write: false,
+    },
     connection: {
       protocol: 'modbus-tcp',
       host: '192.168.1.110',
@@ -977,6 +996,11 @@ export const requests: Request[] = [
     createdAt: '2026-01-06T11:00:00Z',
     updatedAt: '2026-01-07T10:00:00Z',
     description: 'Flow measurement for Site 2 process optimization.',
+    operations: {
+      subscribe: true,
+      read: true,
+      write: true,
+    },
     connection: {
       protocol: 'modbus-tcp',
       host: '192.168.2.20',
@@ -996,6 +1020,7 @@ export const requests: Request[] = [
       },
     ],
     conversation: [],
+    submittedAt: '2026-01-07T10:00:00Z',
     progressPercentage: 100,
   },
   // Pending Requests
