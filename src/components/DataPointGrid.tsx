@@ -1,18 +1,29 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Endpoint, TemplateField } from '../types';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X, Columns } from 'lucide-react';
 
 interface DataPointGridProps {
   endpoints: Endpoint[];
   templateFields: TemplateField[];
   onEndpointsChange: (endpoints: Endpoint[]) => void;
+  customFields?: TemplateField[];
+  onCustomFieldsChange?: (fields: TemplateField[]) => void;
 }
 
 export const DataPointGrid: React.FC<DataPointGridProps> = ({
   endpoints,
   templateFields,
   onEndpointsChange,
+  customFields = [],
+  onCustomFieldsChange,
 }) => {
+  // Add Column Modal State
+  const [showAddColumnModal, setShowAddColumnModal] = useState(false);
+  const [newColumnName, setNewColumnName] = useState('');
+  const [newColumnType, setNewColumnType] = useState<'text' | 'number' | 'select' | 'textarea'>('text');
+
+  // Combine template fields with custom fields
+  const allFields = useMemo(() => [...templateFields, ...customFields], [templateFields, customFields]);
   // Ensure minimum 15 rows
   const displayEndpoints = useMemo(() => {
     const minRows = 15;
@@ -86,6 +97,32 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
     }
   };
 
+  const handleAddColumn = () => {
+    if (!newColumnName.trim() || !onCustomFieldsChange) {
+      return;
+    }
+
+    // Check if column already exists
+    const columnExists = allFields.some(f => f.name.toLowerCase() === newColumnName.toLowerCase());
+    if (columnExists) {
+      alert('A column with this name already exists');
+      return;
+    }
+
+    const newField: TemplateField = {
+      name: newColumnName.trim(),
+      label: newColumnName.trim(),
+      type: newColumnType,
+      required: false,
+      placeholder: `Enter ${newColumnName}...`,
+    };
+
+    onCustomFieldsChange([...customFields, newField]);
+    setShowAddColumnModal(false);
+    setNewColumnName('');
+    setNewColumnType('text');
+  };
+
   const renderCell = (endpoint: Endpoint, field: TemplateField) => {
     const value = (endpoint.fields as Record<string, any>)[field.name] || '';
     const cellClasses = "px-2 py-1 border-r border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-sm";
@@ -148,13 +185,24 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
         <h2 className="text-lg font-semibold text-gray-900">
           DATA POINTS (Excel-style Configuration)
         </h2>
-        <button
-          onClick={handleAddRow}
-          className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Row
-        </button>
+        <div className="flex items-center space-x-2">
+          {onCustomFieldsChange && (
+            <button
+              onClick={() => setShowAddColumnModal(true)}
+              className="inline-flex items-center px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            >
+              <Columns className="w-4 h-4 mr-1" />
+              Add Column
+            </button>
+          )}
+          <button
+            onClick={handleAddRow}
+            className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Row
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -168,7 +216,7 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 w-16">
                   Actions
                 </th>
-                {templateFields.map((field) => (
+                {allFields.map((field) => (
                   <th
                     key={field.name}
                     className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 min-w-[150px]"
@@ -199,7 +247,7 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
-                    {templateFields.map((field) => (
+                    {allFields.map((field) => (
                       <td key={field.name} className="p-0 border-r border-gray-200">
                         {renderCell(endpoint, field)}
                       </td>
@@ -220,10 +268,97 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
           <li>• Use arrow keys to navigate between cells</li>
           <li>• Click <Trash2 className="w-3 h-3 inline" /> to delete a row</li>
           <li>• Click "Add Row" to insert new data point</li>
+          <li>• Click "Add Column" to add custom fields as needed</li>
           <li>• Dropdowns work with click or keyboard (↑↓ arrows + Enter)</li>
           <li>• Grid shows minimum 15 rows, blank rows auto-convert when you type</li>
         </ul>
       </div>
+
+      {/* Add Column Modal */}
+      {showAddColumnModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-2">
+                <Columns className="w-5 h-5 text-green-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Add Custom Column</h2>
+              </div>
+              <button
+                onClick={() => setShowAddColumnModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800">
+                  Add a custom field when the template doesn't include a field you need.
+                  This helps when machines expose data differently.
+                </p>
+              </div>
+
+              {/* Column Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Column Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newColumnName}
+                  onChange={(e) => setNewColumnName(e.target.value)}
+                  placeholder="e.g., Custom Tag ID, Alarm Priority, etc."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              {/* Column Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Field Type
+                </label>
+                <select
+                  value={newColumnType}
+                  onChange={(e) => setNewColumnType(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                  <option value="textarea">Long Text</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowAddColumnModal(false);
+                  setNewColumnName('');
+                  setNewColumnType('text');
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddColumn}
+                disabled={!newColumnName.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  newColumnName.trim()
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Add Column
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

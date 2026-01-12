@@ -196,6 +196,7 @@ export interface Request {
   machineIdentifier?: string; // OT's machine ID (filled by OT)
   connection?: Connection; // Filled by OT
   endpoints: Endpoint[]; // Filled by OT
+  customFields?: TemplateField[]; // OT-added custom columns for flexibility
 
   conversation: Message[];
   activity: Activity[];

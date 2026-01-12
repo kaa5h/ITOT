@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Send, Play, AlertCircle, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { Endpoint, Message } from '../types';
+import { Endpoint, Message, TemplateField } from '../types';
 import { StatusBadge, Comment } from '../components/JiraComponents';
 import { DataPointGrid } from '../components/DataPointGrid';
 
@@ -27,6 +27,7 @@ const OTResponse: React.FC = () => {
   const [authNote, setAuthNote] = useState(request?.connection?.authNote || '');
 
   const [localEndpoints, setLocalEndpoints] = useState<Endpoint[]>(request?.endpoints || []);
+  const [customFields, setCustomFields] = useState<TemplateField[]>(request?.customFields || []);
   const [messageText, setMessageText] = useState('');
   const [hasStarted, setHasStarted] = useState(request?.status !== 'to-do');
 
@@ -138,6 +139,7 @@ const OTResponse: React.FC = () => {
       connection,
       machineIdentifier: machineId,
       endpoints: localEndpoints,
+      customFields: customFields.length > 0 ? customFields : undefined,
       status: 'in-progress',
       progressPercentage: Math.round((totalCompletion.filled / totalCompletion.total) * 100),
     });
@@ -167,6 +169,7 @@ const OTResponse: React.FC = () => {
         connection,
         machineIdentifier: machineId,
         endpoints: localEndpoints,
+        customFields: customFields.length > 0 ? customFields : undefined,
         status: 'review',
         progressPercentage: 100,
         submittedAt: now,
@@ -493,6 +496,8 @@ const OTResponse: React.FC = () => {
               endpoints={localEndpoints}
               templateFields={allFields}
               onEndpointsChange={setLocalEndpoints}
+              customFields={customFields}
+              onCustomFieldsChange={setCustomFields}
             />
           )}
 

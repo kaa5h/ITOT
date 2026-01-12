@@ -15,6 +15,10 @@ const ITReview: React.FC = () => {
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [changeReason, setChangeReason] = useState('');
 
+  // Reopen Request Modal State
+  const [showReopenModal, setShowReopenModal] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
+
   // Table filtering and search state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'complete' | 'incomplete' | 'flagged'>('all');
@@ -107,6 +111,37 @@ const ITReview: React.FC = () => {
       needsITInput: false,
       statusHistory: [...(request.statusHistory || []), newHistoryEntry]
     });
+
+    navigate('/');
+  };
+
+  const handleReopen = () => {
+    if (!reopenReason.trim()) {
+      return; // Require a reason
+    }
+
+    const now = new Date().toISOString();
+    const newHistoryEntry = {
+      id: 'history-' + Date.now(),
+      status: 'in-progress' as const,
+      timestamp: now,
+      changedBy: currentUser.name,
+      reason: reopenReason,
+      note: `Request reopened by IT: ${reopenReason}`
+    };
+
+    updateRequest(request.id, {
+      status: 'in-progress',
+      approvedAt: undefined, // Clear approval metadata
+      approvedBy: undefined,
+      exportedAt: undefined, // Clear export metadata
+      exportId: undefined,
+      statusHistory: [...(request.statusHistory || []), newHistoryEntry]
+    });
+
+    // Reset modal state
+    setShowReopenModal(false);
+    setReopenReason('');
 
     navigate('/');
   };
@@ -581,6 +616,48 @@ const ITReview: React.FC = () => {
             Approve & Export
           </button>
         </div>
+      ) : request.status === 'complete' ? (
+        <div>
+          {/* Completion Badge */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-900">
+                  Request Completed
+                </p>
+                <p className="text-xs text-green-700">
+                  Approved by {request.approvedBy} on {formatDate(request.approvedAt || request.updatedAt)}
+                  {request.exportedAt && ` • Exported on ${formatDate(request.exportedAt)}`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Back to Dashboard
+            </button>
+            <button
+              onClick={() => setShowReopenModal(true)}
+              className="flex-1 px-6 py-3 text-amber-600 bg-white border border-amber-600 rounded-lg hover:bg-amber-50 transition-colors"
+            >
+              Reopen Request
+            </button>
+            {!request.exportedAt && (
+              <button
+                onClick={() => navigate(`/request/${id}/export`)}
+                className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Go to Export
+              </button>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="flex items-center space-x-4">
           <button
@@ -651,6 +728,90 @@ const ITReview: React.FC = () => {
                 }`}
               >
                 Send Changes Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reopen Request Modal */}
+      {showReopenModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <AlertCircle className="w-6 h-6 text-amber-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Reopen Request</h2>
+              </div>
+              <button
+                onClick={() => setShowReopenModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800">
+                  <strong>Why reopen a completed request?</strong>
+                  <br />
+                  Use this when the export or downstream AI processing fails, or when you discover issues after approval.
+                  The request will return to "In Progress" status for OT to make corrections.
+                </p>
+              </div>
+
+              {/* Status History Indicator */}
+              {request.statusHistory && request.statusHistory.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800">
+                    <strong>Previous completion:</strong> This request was approved by {request.approvedBy}
+                    {request.approvedAt && ` on ${formatDate(request.approvedAt)}`}
+                  </p>
+                </div>
+              )}
+
+              {/* Reason Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for reopening <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={reopenReason}
+                  onChange={(e) => setReopenReason(e.target.value)}
+                  placeholder="e.g., Export failed - CSV contains incorrect data types. Need OT to verify endpoint configurations."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                  rows={4}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Explain what went wrong and what needs to be fixed. This will be visible in the request's status history.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowReopenModal(false);
+                  setReopenReason('');
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReopen}
+                disabled={!reopenReason.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  reopenReason.trim()
+                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Reopen Request
               </button>
             </div>
           </div>
