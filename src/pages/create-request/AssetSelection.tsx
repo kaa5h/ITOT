@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronDown, FolderOpen, Folder } from 'lucide-react';
+import { ChevronRight, ChevronDown, FolderOpen, Folder, X, CheckSquare, Square } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useRequestCreation } from '../../context/RequestCreationContext';
 import { Asset } from '../../types';
@@ -8,10 +8,10 @@ import { Asset } from '../../types';
 const AssetSelection: React.FC = () => {
   const navigate = useNavigate();
   const { assets } = useAppContext();
-  const { setSelectedAsset, setStep } = useRequestCreation();
+  const { setSelectedAssets, setStep } = useRequestCreation();
 
   const [viewMode, setViewMode] = useState<'uns' | 'manual'>('uns');
-  const [selectedAssetId, setSelectedAssetId] = useState('');
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Manual input state
@@ -81,7 +81,9 @@ const AssetSelection: React.FC = () => {
     });
   }, [assets, manualCompany, manualPlant, manualShop, manualLine, manualStation]);
 
-  const selectedAsset = assets.find((a) => a.id === selectedAssetId);
+  const selectedAssetsList = React.useMemo(() => {
+    return assets.filter(a => selectedAssetIds.has(a.id));
+  }, [assets, selectedAssetIds]);
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -95,9 +97,49 @@ const AssetSelection: React.FC = () => {
     });
   };
 
+  const toggleAssetSelection = (assetId: string) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(assetId)) {
+        next.delete(assetId);
+      } else {
+        next.add(assetId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllAssets = (assetsToSelect: Asset[]) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev);
+      assetsToSelect.forEach(asset => next.add(asset.id));
+      return next;
+    });
+  };
+
+  const deselectAllAssets = (assetsToDeselect: Asset[]) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev);
+      assetsToDeselect.forEach(asset => next.delete(asset.id));
+      return next;
+    });
+  };
+
+  const removeAsset = (assetId: string) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev);
+      next.delete(assetId);
+      return next;
+    });
+  };
+
+  const clearAll = () => {
+    setSelectedAssetIds(new Set());
+  };
+
   const handleNext = () => {
-    if (selectedAsset) {
-      setSelectedAsset(selectedAsset);
+    if (selectedAssetsList.length > 0) {
+      setSelectedAssets(selectedAssetsList);
       setStep(2);
       navigate('/create-request/describe');
     }
@@ -210,37 +252,54 @@ const AssetSelection: React.FC = () => {
                                                       </div>
 
                                                       {stationExpanded && (
-                                                        <div className="ml-5 mt-1 space-y-1">
-                                                          {assets.map((asset) => (
-                                                            <div
-                                                              key={asset.id}
-                                                              onClick={() => setSelectedAssetId(asset.id)}
-                                                              className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
-                                                                selectedAssetId === asset.id
-                                                                  ? 'bg-blue-50 border-l-2 border-l-blue-600'
-                                                                  : 'hover:bg-gray-50'
-                                                              }`}
-                                                            >
-                                                              <div className="flex-1">
-                                                                <div className="flex items-center space-x-2">
+                                                        <div className="ml-5 mt-1">
+                                                          {/* Select All button for station */}
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              const allSelected = assets.every(a => selectedAssetIds.has(a.id));
+                                                              if (allSelected) {
+                                                                deselectAllAssets(assets);
+                                                              } else {
+                                                                selectAllAssets(assets);
+                                                              }
+                                                            }}
+                                                            className="text-xs text-blue-600 hover:text-blue-800 mb-1 px-2"
+                                                          >
+                                                            {assets.every(a => selectedAssetIds.has(a.id)) ? 'Deselect All' : 'Select All'} ({assets.length})
+                                                          </button>
+                                                          <div className="space-y-1">
+                                                            {assets.map((asset) => (
+                                                              <div
+                                                                key={asset.id}
+                                                                onClick={() => toggleAssetSelection(asset.id)}
+                                                                className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                                                                  selectedAssetIds.has(asset.id)
+                                                                    ? 'bg-blue-50 border-l-2 border-l-blue-600'
+                                                                    : 'hover:bg-gray-50'
+                                                                }`}
+                                                              >
+                                                                <div className="flex items-center space-x-2 flex-1">
+                                                                  {selectedAssetIds.has(asset.id) ? (
+                                                                    <CheckSquare className="w-4 h-4 text-blue-600" />
+                                                                  ) : (
+                                                                    <Square className="w-4 h-4 text-gray-400" />
+                                                                  )}
                                                                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                                                                   </svg>
-                                                                  <span className="text-xs font-medium text-gray-900">{asset.id}</span>
-                                                                  <span className="text-xs text-gray-500">-</span>
-                                                                  <span className="text-xs text-gray-700">{asset.name}</span>
+                                                                  <div className="flex-1">
+                                                                    <div className="flex items-center space-x-2">
+                                                                      <span className="text-xs font-medium text-gray-900">{asset.id}</span>
+                                                                      <span className="text-xs text-gray-500">-</span>
+                                                                      <span className="text-xs text-gray-700">{asset.name}</span>
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500">{asset.type}</div>
+                                                                  </div>
                                                                 </div>
-                                                                <div className="text-xs text-gray-500 ml-5">{asset.type}</div>
                                                               </div>
-                                                              {selectedAssetId === asset.id && (
-                                                                <div className="w-3.5 h-3.5 bg-blue-600 rounded-full flex items-center justify-center">
-                                                                  <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                                  </svg>
-                                                                </div>
-                                                              )}
-                                                            </div>
-                                                          ))}
+                                                            ))}
+                                                          </div>
                                                         </div>
                                                       )}
                                                     </div>
@@ -274,8 +333,17 @@ const AssetSelection: React.FC = () => {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Request</h1>
-        <p className="text-gray-600">Step 1 of 3: Select Asset</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Create New Request</h1>
+            <p className="text-gray-600">Step 1 of 3: Select Assets</p>
+          </div>
+          {selectedAssetsList.length > 0 && (
+            <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
+              <span className="font-semibold">{selectedAssetsList.length}</span> selected
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -347,7 +415,6 @@ const AssetSelection: React.FC = () => {
                     setManualShop('');
                     setManualLine('');
                     setManualStation('');
-                    setSelectedAssetId('');
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -368,7 +435,6 @@ const AssetSelection: React.FC = () => {
                       setManualShop('');
                       setManualLine('');
                       setManualStation('');
-                      setSelectedAssetId('');
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -389,7 +455,6 @@ const AssetSelection: React.FC = () => {
                       setManualShop(e.target.value);
                       setManualLine('');
                       setManualStation('');
-                      setSelectedAssetId('');
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -409,7 +474,6 @@ const AssetSelection: React.FC = () => {
                     onChange={(e) => {
                       setManualLine(e.target.value);
                       setManualStation('');
-                      setSelectedAssetId('');
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -428,7 +492,6 @@ const AssetSelection: React.FC = () => {
                     value={manualStation}
                     onChange={(e) => {
                       setManualStation(e.target.value);
-                      setSelectedAssetId('');
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -444,48 +507,59 @@ const AssetSelection: React.FC = () => {
             {/* Show matching assets */}
             {manualCompany && manualFilteredAssets.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                  Matching Assets ({manualFilteredAssets.length})
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Matching Assets ({manualFilteredAssets.length})
+                  </h3>
+                  <button
+                    onClick={() => {
+                      const allSelected = manualFilteredAssets.every(a => selectedAssetIds.has(a.id));
+                      if (allSelected) {
+                        deselectAllAssets(manualFilteredAssets);
+                      } else {
+                        selectAllAssets(manualFilteredAssets);
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    {manualFilteredAssets.every(a => selectedAssetIds.has(a.id)) ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
                 <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
                   {manualFilteredAssets.map((asset) => (
                     <div
                       key={asset.id}
-                      onClick={() => setSelectedAssetId(asset.id)}
+                      onClick={() => toggleAssetSelection(asset.id)}
                       className={`p-4 border-b border-gray-200 cursor-pointer transition-colors ${
-                        selectedAssetId === asset.id
+                        selectedAssetIds.has(asset.id)
                           ? 'bg-blue-50 border-l-4 border-l-blue-600'
                           : 'hover:bg-gray-50'
                       }`}
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-gray-900">{asset.id}</span>
-                            <span className="text-sm text-gray-500">-</span>
-                            <span className="text-gray-900">{asset.name}</span>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">Type:</span> {asset.type}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">Location:</span> {asset.location}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">Owner:</span> {asset.owner}
+                        <div className="flex items-center space-x-3 flex-1">
+                          {selectedAssetIds.has(asset.id) ? (
+                            <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="font-medium text-gray-900">{asset.id}</span>
+                              <span className="text-sm text-gray-500">-</span>
+                              <span className="text-gray-900">{asset.name}</span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">Type:</span> {asset.type}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">Location:</span> {asset.location}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">Owner:</span> {asset.owner}
+                            </div>
                           </div>
                         </div>
-                        {selectedAssetId === asset.id && (
-                          <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -496,27 +570,48 @@ const AssetSelection: React.FC = () => {
         )}
       </div>
 
-      {/* Selected Asset Details */}
-      {selectedAsset && (
+      {/* Selected Assets Panel */}
+      {selectedAssetsList.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">Selected Asset</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-blue-700 font-medium">Machine:</span>{' '}
-              <span className="text-blue-900">{selectedAsset.id}</span>
-            </div>
-            <div>
-              <span className="text-blue-700 font-medium">Type:</span>{' '}
-              <span className="text-blue-900">{selectedAsset.type}</span>
-            </div>
-            <div className="col-span-2">
-              <span className="text-blue-700 font-medium">Location:</span>{' '}
-              <span className="text-blue-900">{selectedAsset.location}</span>
-            </div>
-            <div>
-              <span className="text-blue-700 font-medium">Will be assigned to:</span>{' '}
-              <span className="text-blue-900">{selectedAsset.owner}</span>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-blue-900">
+              Selected Assets ({selectedAssetsList.length})
+            </h3>
+            <button
+              onClick={clearAll}
+              className="text-xs text-red-600 hover:text-red-800 font-medium"
+            >
+              Clear All
+            </button>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {selectedAssetsList.map((asset) => (
+              <div
+                key={asset.id}
+                className="bg-white border border-blue-200 rounded p-3 flex items-start justify-between"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="font-medium text-gray-900 text-sm">{asset.id}</span>
+                    <span className="text-xs text-gray-500">-</span>
+                    <span className="text-sm text-gray-700 truncate">{asset.name}</span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {asset.type} • {asset.location}
+                  </div>
+                  <div className="text-xs text-blue-700">
+                    Will be assigned to: {asset.owner}
+                  </div>
+                </div>
+                <button
+                  onClick={() => removeAsset(asset.id)}
+                  className="ml-3 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Remove asset"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -524,8 +619,12 @@ const AssetSelection: React.FC = () => {
       {/* Info Box */}
       <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6">
         <p className="text-sm text-amber-800">
-          <strong>Next step:</strong> You'll describe what data you need from this machine.
-          Be specific about which sensors/measurements you need, as machines often have many similar data points.
+          <strong>Next step:</strong> You'll describe what data you need from{' '}
+          {selectedAssetsList.length === 1 ? 'this machine' : `these ${selectedAssetsList.length} machines`}.
+          {selectedAssetsList.length > 1 && ' The same data requirements will apply to all selected assets.'}
+        </p>
+        <p className="text-xs text-amber-700 mt-2">
+          <strong>Tip:</strong> Select multiple assets when they share the same data needs (e.g., all PLCs in Line 1).
         </p>
       </div>
 
@@ -539,14 +638,14 @@ const AssetSelection: React.FC = () => {
         </button>
         <button
           onClick={handleNext}
-          disabled={!selectedAssetId}
+          disabled={selectedAssetsList.length === 0}
           className={`inline-flex items-center px-6 py-2 rounded-lg transition-colors ${
-            selectedAssetId
+            selectedAssetsList.length > 0
               ? 'bg-blue-600 text-white hover:bg-blue-700'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          Next: Describe Data
+          Next: Describe Data{selectedAssetsList.length > 1 && ` (${selectedAssetsList.length} assets)`}
           <ChevronRight className="w-5 h-5 ml-2" />
         </button>
       </div>
