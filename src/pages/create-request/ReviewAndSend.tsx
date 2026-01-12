@@ -8,7 +8,7 @@ import { Request, ValidationRule } from '../../types';
 const ReviewAndSend: React.FC = () => {
   const navigate = useNavigate();
   const { addRequest, currentUser } = useAppContext();
-  const { selectedAsset, description, timeline, estimatedDataPoints, resetState, setStep } = useRequestCreation();
+  const { selectedAssets, description, timeline, estimatedDataPoints, resetState, setStep } = useRequestCreation();
 
   const [emailNotification, setEmailNotification] = useState(true);
   const [inAppNotification, setInAppNotification] = useState(true);
@@ -29,7 +29,7 @@ const ReviewAndSend: React.FC = () => {
   const [newRuleValue, setNewRuleValue] = useState('');
   const [newRuleErrorMessage, setNewRuleErrorMessage] = useState('');
 
-  if (!selectedAsset || !description.trim()) {
+  if (selectedAssets.length === 0 || !description.trim()) {
     navigate('/create-request/asset');
     return null;
   }
@@ -78,42 +78,49 @@ const ReviewAndSend: React.FC = () => {
 
   const handleSend = () => {
     const now = new Date().toISOString();
-    const newRequest: Request = {
-      id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
-      assetId: selectedAsset.id,
-      assetName: selectedAsset.name,
-      location: selectedAsset.location,
-      status: 'to-do',
-      priority: 'Medium',
-      createdBy: currentUser.name,
-      assignedTo: selectedAsset.owner,
-      createdAt: now,
-      updatedAt: now,
-      description,
-      timeline,
-      estimatedDataPoints,
-      // IT-defined operations (applies globally to all endpoints)
-      operations: {
-        subscribe: opSubscribe,
-        read: opRead,
-        write: opWrite,
-      },
-      namingConvention: namingConvention.trim() || undefined,
-      validationRules: validationRules.length > 0 ? validationRules : undefined,
-      endpoints: [], // Empty - OT will fill
-      conversation: [],
-      activity: [],
-      progressPercentage: 0,
-      statusHistory: [{
-        id: 'history-' + Date.now(),
-        status: 'to-do',
-        timestamp: now,
-        changedBy: currentUser.name,
-        note: 'Request created and sent to OT'
-      }]
-    };
 
-    addRequest(newRequest);
+    // Create one request per selected asset
+    selectedAssets.forEach((asset, index) => {
+      const newRequest: Request = {
+        id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
+        assetId: asset.id,
+        assetName: asset.name,
+        location: asset.location,
+        status: 'to-do',
+        priority: 'Medium',
+        createdBy: currentUser.name,
+        assignedTo: asset.owner,
+        createdAt: now,
+        updatedAt: now,
+        description,
+        timeline,
+        estimatedDataPoints,
+        // IT-defined operations (applies globally to all endpoints)
+        operations: {
+          subscribe: opSubscribe,
+          read: opRead,
+          write: opWrite,
+        },
+        namingConvention: namingConvention.trim() || undefined,
+        validationRules: validationRules.length > 0 ? validationRules : undefined,
+        endpoints: [], // Empty - OT will fill
+        conversation: [],
+        activity: [],
+        progressPercentage: 0,
+        statusHistory: [{
+          id: 'history-' + (Date.now() + index), // Ensure unique IDs
+          status: 'to-do',
+          timestamp: now,
+          changedBy: currentUser.name,
+          note: selectedAssets.length > 1
+            ? `Request created (part of ${selectedAssets.length}-asset batch) and sent to OT`
+            : 'Request created and sent to OT'
+        }]
+      };
+
+      addRequest(newRequest);
+    });
+
     resetState();
 
     // Show success and redirect
