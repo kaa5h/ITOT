@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Endpoint, TemplateField, ValidationRule } from '../types';
-import { Plus, Trash2, X, Columns, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, X, Columns, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface DataPointGridProps {
   endpoints: Endpoint[];
@@ -281,12 +281,73 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
     );
   };
 
+  // Calculate overall completion statistics
+  const completionStats = useMemo(() => {
+    const realEndpoints = endpoints.filter(ep => !ep.id.startsWith('blank-'));
+    let totalComplete = 0;
+    let totalPartial = 0;
+    let totalEmpty = 0;
+    let totalFields = 0;
+    let filledFields = 0;
+
+    realEndpoints.forEach(ep => {
+      const fieldCount = allFields.length;
+      const filled = allFields.filter(f => {
+        const val = (ep.fields as Record<string, any>)[f.name];
+        return val !== undefined && val !== null && val !== '';
+      }).length;
+
+      totalFields += fieldCount;
+      filledFields += filled;
+
+      if (filled === fieldCount && fieldCount > 0) {
+        totalComplete++;
+      } else if (filled > 0) {
+        totalPartial++;
+      } else {
+        totalEmpty++;
+      }
+    });
+
+    return {
+      totalRows: realEndpoints.length,
+      complete: totalComplete,
+      partial: totalPartial,
+      empty: totalEmpty,
+      totalFields,
+      filledFields,
+      percentage: totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0
+    };
+  }, [endpoints, allFields]);
+
   return (
     <div className="space-y-4">
+      {/* Header with Completion Summary */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">
-          DATA POINTS (Excel-style Configuration)
-        </h2>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            DATA POINTS (Excel-style Configuration)
+          </h2>
+          {completionStats.totalRows > 0 && (
+            <div className="flex items-center space-x-4 mt-1 text-xs text-gray-600">
+              <span className="font-medium">
+                {completionStats.percentage}% Complete ({completionStats.filledFields}/{completionStats.totalFields} fields)
+              </span>
+              <span className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                <span>{completionStats.complete} complete</span>
+              </span>
+              <span className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded"></div>
+                <span>{completionStats.partial} partial</span>
+              </span>
+              <span className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-white border border-gray-300 rounded"></div>
+                <span>{completionStats.empty} empty</span>
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
           {onCustomFieldsChange && (
             <button
@@ -315,6 +376,9 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 w-12">
                   #
                 </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 w-20">
+                  Status
+                </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r border-gray-200 w-16">
                   Actions
                 </th>
@@ -332,10 +396,46 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {displayEndpoints.map((endpoint, index) => {
                 const isBlankRow = endpoint.id.startsWith('blank-');
+
+                // Calculate completion status for this row
+                const fieldCount = allFields.length;
+                const filledCount = allFields.filter(f => {
+                  const val = (endpoint.fields as Record<string, any>)[f.name];
+                  return val !== undefined && val !== null && val !== '';
+                }).length;
+                const isComplete = !isBlankRow && filledCount === fieldCount && fieldCount > 0;
+                const isPartial = !isBlankRow && filledCount > 0 && filledCount < fieldCount;
+                const isEmpty = !isBlankRow && filledCount === 0;
+
+                // Determine row background color
+                let rowClass = 'hover:bg-gray-50 transition-colors';
+                if (isBlankRow) {
+                  rowClass = 'bg-gray-50/30 hover:bg-gray-50/50';
+                } else if (isComplete) {
+                  rowClass = 'bg-green-50 hover:bg-green-100';
+                } else if (isPartial) {
+                  rowClass = 'bg-gray-50 hover:bg-gray-100';
+                } else if (isEmpty) {
+                  rowClass = 'bg-white hover:bg-gray-50';
+                }
+
                 return (
-                  <tr key={endpoint.id} className={`hover:bg-gray-50 ${isBlankRow ? 'bg-gray-50/30' : ''}`}>
-                    <td className="px-3 py-1 whitespace-nowrap text-sm text-gray-500 border-r border-gray-200">
+                  <tr key={endpoint.id} className={rowClass}>
+                    <td className="px-3 py-1 whitespace-nowrap text-sm text-gray-500 border-r border-gray-200 text-center">
                       {index + 1}
+                    </td>
+                    <td className="px-3 py-1 whitespace-nowrap border-r border-gray-200 text-center">
+                      {isBlankRow ? (
+                        <span className="text-xs text-gray-400">-</span>
+                      ) : isComplete ? (
+                        <div title="Complete">
+                          <CheckCircle className="w-4 h-4 text-green-600 inline" />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-600" title={`${filledCount} of ${fieldCount} fields filled`}>
+                          {filledCount}/{fieldCount}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-1 whitespace-nowrap border-r border-gray-200">
                       <button
@@ -362,16 +462,33 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
         </div>
       </div>
 
+      {/* Progress Bar */}
+      {completionStats.totalRows > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span className="font-medium text-gray-700">Overall Progress</span>
+            <span className="font-semibold text-gray-900">{completionStats.percentage}%</span>
+          </div>
+          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-300"
+              style={{ width: `${completionStats.percentage}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+
       <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
         <p className="font-medium mb-1">Excel-like controls:</p>
         <ul className="space-y-1 text-xs">
           <li>• Click any cell to edit directly</li>
           <li>• Use Tab to move to next cell, Shift+Tab to move back</li>
           <li>• Use arrow keys to navigate between cells</li>
+          <li>• <strong>Row colors:</strong> <span className="bg-green-100 px-1 rounded">Green</span> = complete, <span className="bg-gray-100 px-1 rounded">Gray</span> = partial, White = empty</li>
+          <li>• <strong>Status column:</strong> ✓ icon = complete, "X/Y" = filled/total fields</li>
           <li>• Click <Trash2 className="w-3 h-3 inline" /> to delete a row</li>
           <li>• Click "Add Row" to insert new data point</li>
           <li>• Click "Add Column" to add custom fields as needed</li>
-          <li>• Dropdowns work with click or keyboard (↑↓ arrows + Enter)</li>
           <li>• Grid shows minimum 15 rows, blank rows auto-convert when you type</li>
         </ul>
       </div>
