@@ -13,6 +13,11 @@ const ReviewAndSend: React.FC = () => {
   const [emailNotification, setEmailNotification] = useState(true);
   const [inAppNotification, setInAppNotification] = useState(true);
 
+  // Operations Settings (IT-defined, applies globally)
+  const [opSubscribe, setOpSubscribe] = useState(true);
+  const [opRead, setOpRead] = useState(true);
+  const [opWrite, setOpWrite] = useState(false);
+
   if (!selectedAsset || !description.trim()) {
     navigate('/create-request/asset');
     return null;
@@ -39,6 +44,12 @@ const ReviewAndSend: React.FC = () => {
       description,
       timeline,
       estimatedDataPoints,
+      // IT-defined operations (applies globally to all endpoints)
+      operations: {
+        subscribe: opSubscribe,
+        read: opRead,
+        write: opWrite,
+      },
       endpoints: [], // Empty - OT will fill
       conversation: [],
       activity: [],
@@ -139,6 +150,67 @@ const ReviewAndSend: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Operations Settings Card */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Operations Settings</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Define which operations are allowed for this integration. These settings apply globally to all endpoints.
+        </p>
+
+        <div className="space-y-3">
+          <label className="flex items-start space-x-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={opSubscribe}
+              onChange={(e) => setOpSubscribe(e.target.checked)}
+              className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">Subscribe</div>
+              <div className="text-xs text-gray-600">
+                Allow real-time subscriptions to data changes (push notifications when values update)
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start space-x-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={opRead}
+              onChange={(e) => setOpRead(e.target.checked)}
+              className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">Read</div>
+              <div className="text-xs text-gray-600">
+                Allow reading current values on demand (poll for current state)
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start space-x-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={opWrite}
+              onChange={(e) => setOpWrite(e.target.checked)}
+              className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">Write</div>
+              <div className="text-xs text-gray-600">
+                Allow writing values to endpoints (control setpoints, commands, etc.)
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs text-blue-800">
+            <strong>Note:</strong> These operations apply to all endpoints in this request. OT does not need to specify operations per endpoint.
+          </p>
         </div>
       </div>
 
