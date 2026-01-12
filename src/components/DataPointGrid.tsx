@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
-import { Endpoint, TemplateField } from '../types';
-import { Plus, Trash2, X, Columns } from 'lucide-react';
+import { Endpoint, TemplateField, ValidationRule } from '../types';
+import { Plus, Trash2, X, Columns, AlertCircle } from 'lucide-react';
 
 interface DataPointGridProps {
   endpoints: Endpoint[];
@@ -8,6 +8,8 @@ interface DataPointGridProps {
   onEndpointsChange: (endpoints: Endpoint[]) => void;
   customFields?: TemplateField[];
   onCustomFieldsChange?: (fields: TemplateField[]) => void;
+  validationRules?: ValidationRule[];
+  namingConvention?: string;
 }
 
 export const DataPointGrid: React.FC<DataPointGridProps> = ({
@@ -16,14 +18,74 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
   onEndpointsChange,
   customFields = [],
   onCustomFieldsChange,
+  validationRules = [],
+  namingConvention: _namingConvention, // Reserved for future auto-naming functionality
 }) => {
   // Add Column Modal State
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
   const [newColumnType, setNewColumnType] = useState<'text' | 'number' | 'select' | 'textarea'>('text');
 
+  // Validation errors: Map<endpointId_fieldName, errorMessage>
+  const [validationErrors, setValidationErrors] = useState<Map<string, string>>(new Map());
+
   // Combine template fields with custom fields
   const allFields = useMemo(() => [...templateFields, ...customFields], [templateFields, customFields]);
+
+  // Validation function
+  const validateField = useCallback((fieldName: string, value: string): string | null => {
+    const rule = validationRules.find(r => r.fieldName === fieldName);
+    if (!rule || !value) return null; // No rule or empty value - no error
+
+    switch (rule.ruleType) {
+      case 'regex': {
+        try {
+          const regex = new RegExp(rule.value as string);
+          if (!regex.test(value)) {
+            return rule.errorMessage;
+          }
+        } catch (e) {
+          console.error('Invalid regex pattern:', rule.value);
+        }
+        break;
+      }
+
+      case 'enum': {
+        const allowedValues = rule.value as string[];
+        if (!allowedValues.includes(value)) {
+          return rule.errorMessage;
+        }
+        break;
+      }
+
+      case 'range': {
+        const numValue = parseFloat(value);
+        const range = rule.value as { min?: number; max?: number };
+        if (isNaN(numValue)) {
+          return 'Must be a valid number';
+        }
+        if (range.min !== undefined && numValue < range.min) {
+          return rule.errorMessage;
+        }
+        if (range.max !== undefined && numValue > range.max) {
+          return rule.errorMessage;
+        }
+        break;
+      }
+
+      case 'format': {
+        // Simple format validation (could be enhanced)
+        const format = rule.value as string;
+        if (value.length !== format.length) {
+          return rule.errorMessage;
+        }
+        break;
+      }
+    }
+
+    return null; // No error
+  }, [validationRules]);
+
   // Ensure minimum 15 rows
   const displayEndpoints = useMemo(() => {
     const minRows = 15;
@@ -50,10 +112,12 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
       const currentEndpoint = updatedDisplayEndpoints[rowIndex];
       const isBlankRow = currentEndpoint.id.startsWith('blank-');
 
+      let actualRowId = rowId;
       if (isBlankRow) {
         // Convert blank row to real endpoint
+        actualRowId = 'ep-' + Date.now() + '-' + rowIndex;
         updatedDisplayEndpoints[rowIndex] = {
-          id: 'ep-' + Date.now() + '-' + rowIndex,
+          id: actualRowId,
           fields: {
             [fieldName]: value,
           },
@@ -70,11 +134,24 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
         };
       }
 
+      // Validate the field
+      const error = validateField(fieldName, value?.toString() || '');
+      const errorKey = `${actualRowId}_${fieldName}`;
+      setValidationErrors(prev => {
+        const newErrors = new Map(prev);
+        if (error) {
+          newErrors.set(errorKey, error);
+        } else {
+          newErrors.delete(errorKey);
+        }
+        return newErrors;
+      });
+
       // Filter out blank rows and save only real endpoints
       const realEndpoints = updatedDisplayEndpoints.filter(ep => !ep.id.startsWith('blank-'));
       onEndpointsChange(realEndpoints);
     },
-    [displayEndpoints, onEndpointsChange]
+    [displayEndpoints, onEndpointsChange, validateField]
   );
 
   const handleAddRow = () => {
@@ -125,58 +202,83 @@ export const DataPointGrid: React.FC<DataPointGridProps> = ({
 
   const renderCell = (endpoint: Endpoint, field: TemplateField) => {
     const value = (endpoint.fields as Record<string, any>)[field.name] || '';
-    const cellClasses = "px-2 py-1 border-r border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-sm";
+    const errorKey = `${endpoint.id}_${field.name}`;
+    const hasError = validationErrors.has(errorKey);
+    const errorMessage = validationErrors.get(errorKey);
 
-    switch (field.type) {
-      case 'select':
-        return (
-          <select
-            value={value?.toString() || ''}
-            onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
-            className={cellClasses}
-          >
-            <option value="">Select...</option>
-            {(field.options || []).map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        );
+    const cellClasses = `px-2 py-1 border-r focus:outline-none focus:ring-1 w-full text-sm ${
+      hasError
+        ? 'border-red-500 bg-red-50 focus:ring-red-500'
+        : 'border-gray-200 focus:ring-blue-500'
+    }`;
 
-      case 'number':
-        return (
-          <input
-            type="number"
-            value={value || ''}
-            onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
-            className={cellClasses}
-            placeholder="0"
-          />
-        );
+    const renderInput = () => {
+      switch (field.type) {
+        case 'select':
+          return (
+            <select
+              value={value?.toString() || ''}
+              onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
+              className={cellClasses}
+              title={hasError ? errorMessage : ''}
+            >
+              <option value="">Select...</option>
+              {(field.options || []).map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          );
 
-      case 'textarea':
-        return (
-          <textarea
-            value={value || ''}
-            onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
-            className={`${cellClasses} resize-none`}
-            rows={2}
-            placeholder={field.placeholder || ''}
-          />
-        );
+        case 'number':
+          return (
+            <input
+              type="number"
+              value={value || ''}
+              onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
+              className={cellClasses}
+              placeholder="0"
+              title={hasError ? errorMessage : ''}
+            />
+          );
 
-      default:
-        return (
-          <input
-            type="text"
-            value={value || ''}
-            onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
-            className={cellClasses}
-            placeholder={field.placeholder || ''}
-          />
-        );
-    }
+        case 'textarea':
+          return (
+            <textarea
+              value={value || ''}
+              onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
+              className={`${cellClasses} resize-none`}
+              rows={2}
+              placeholder={field.placeholder || ''}
+              title={hasError ? errorMessage : ''}
+            />
+          );
+
+        default:
+          return (
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => handleCellChange(endpoint.id, field.name, e.target.value)}
+              className={cellClasses}
+              placeholder={field.placeholder || ''}
+              title={hasError ? errorMessage : ''}
+            />
+          );
+      }
+    };
+
+    return (
+      <div className="relative">
+        {renderInput()}
+        {hasError && (
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" title={errorMessage}>
+            <AlertCircle className="w-4 h-4 text-red-500" />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (

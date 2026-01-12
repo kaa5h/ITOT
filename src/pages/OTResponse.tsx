@@ -319,6 +319,44 @@ const OTResponse: React.FC = () => {
         )}
       </div>
 
+      {/* Validation Rules & Naming Convention */}
+      {(request.validationRules?.length || request.namingConvention) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center">
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Data Entry Requirements
+          </h3>
+
+          {request.namingConvention && (
+            <div className="mb-3">
+              <p className="text-xs font-medium text-amber-800 mb-1">Naming Convention:</p>
+              <code className="text-xs bg-amber-100 px-2 py-1 rounded text-amber-900">
+                {request.namingConvention}
+              </code>
+            </div>
+          )}
+
+          {request.validationRules && request.validationRules.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-amber-800 mb-2">
+                Validation Rules ({request.validationRules.length}):
+              </p>
+              <div className="space-y-1">
+                {request.validationRules.map((rule, index) => (
+                  <div key={index} className="text-xs text-amber-800 bg-amber-100 px-2 py-1 rounded">
+                    <span className="font-medium">{rule.fieldName}:</span> {rule.errorMessage}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-amber-700 mt-3">
+            ⚠️ Fields will be validated in real-time. Invalid entries will be highlighted with a red border.
+          </p>
+        </div>
+      )}
+
       {/* Progress */}
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between">
@@ -498,6 +536,8 @@ const OTResponse: React.FC = () => {
               onEndpointsChange={setLocalEndpoints}
               customFields={customFields}
               onCustomFieldsChange={setCustomFields}
+              validationRules={request.validationRules}
+              namingConvention={request.namingConvention}
             />
           )}
 
