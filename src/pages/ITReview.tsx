@@ -261,51 +261,6 @@ const ITReview: React.FC = () => {
           </div>
         </div>
 
-        {/* Operations Settings (IT-Defined, Global) */}
-        {request.operations && (
-          <div className="mb-4 pb-4 border-b border-gray-200">
-            <div className="flex items-center space-x-2 mb-2">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-              <h3 className="text-sm font-semibold text-gray-700">Operations (IT-Defined, Applies to All Endpoints)</h3>
-            </div>
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center space-x-2">
-                {request.operations.subscribe ? (
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                ) : (
-                  <X className="w-4 h-4 text-gray-400" />
-                )}
-                <span className={request.operations.subscribe ? 'text-gray-900' : 'text-gray-400'}>
-                  Subscribe
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                {request.operations.read ? (
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                ) : (
-                  <X className="w-4 h-4 text-gray-400" />
-                )}
-                <span className={request.operations.read ? 'text-gray-900' : 'text-gray-400'}>
-                  Read
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                {request.operations.write ? (
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                ) : (
-                  <X className="w-4 h-4 text-gray-400" />
-                )}
-                <span className={request.operations.write ? 'text-gray-900' : 'text-gray-400'}>
-                  Write
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              These operations are defined by IT and apply consistently to all endpoints in this request
-            </p>
-          </div>
-        )}
-
         {/* Endpoints - Excel-like Table View */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">

@@ -8,17 +8,11 @@ const DataDescription: React.FC = () => {
   const {
     selectedAsset,
     description: savedDescription,
-    timeline: savedTimeline,
-    estimatedDataPoints: savedEstimatedDataPoints,
     setDescription,
-    setTimeline,
-    setEstimatedDataPoints,
     setStep,
   } = useRequestCreation();
 
   const [description, setLocalDescription] = useState(savedDescription);
-  const [timeline, setLocalTimeline] = useState(savedTimeline);
-  const [estimatedDataPoints, setLocalEstimatedDataPoints] = useState(savedEstimatedDataPoints);
 
   if (!selectedAsset) {
     navigate('/create-request/asset');
@@ -28,8 +22,6 @@ const DataDescription: React.FC = () => {
   const handleNext = () => {
     if (description.trim()) {
       setDescription(description);
-      setTimeline(timeline);
-      setEstimatedDataPoints(estimatedDataPoints);
       setStep(3);
       navigate('/create-request/review');
     }
@@ -113,51 +105,6 @@ Also need inlet pressure measurement for the same cooling loop to calculate pres
               Try to be more specific - this helps OT provide accurate data
             </span>
           )}
-        </div>
-      </div>
-
-      {/* Additional Details */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Details</h2>
-
-        <div className="space-y-4">
-          {/* Estimated Data Points */}
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              How many data points do you need? (Approximate)
-            </label>
-            <select
-              value={estimatedDataPoints}
-              onChange={(e) => setLocalEstimatedDataPoints(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="1-5">1-5 data points</option>
-              <option value="5-10">5-10 data points</option>
-              <option value="10-20">10-20 data points</option>
-              <option value="20+">More than 20 data points</option>
-              <option value="unknown">Not sure yet</option>
-            </select>
-            <p className="text-sm text-gray-500 mt-1">
-              This helps OT estimate the scope of work
-            </p>
-          </div>
-
-          {/* Timeline */}
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              When do you need this by?
-            </label>
-            <input
-              type="text"
-              value={timeline}
-              onChange={(e) => setLocalTimeline(e.target.value)}
-              placeholder="e.g., End of week, Not urgent, ASAP, etc."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Optional - helps OT prioritize
-            </p>
-          </div>
         </div>
       </div>
 

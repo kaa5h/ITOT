@@ -5,16 +5,12 @@ interface RequestCreationState {
   step: number;
   selectedAsset?: Asset;
   description: string;
-  timeline: string;
-  estimatedDataPoints: string;
 }
 
 interface RequestCreationContextType extends RequestCreationState {
   setStep: (step: number) => void;
   setSelectedAsset: (asset: Asset) => void;
   setDescription: (description: string) => void;
-  setTimeline: (timeline: string) => void;
-  setEstimatedDataPoints: (count: string) => void;
   resetState: () => void;
 }
 
@@ -32,8 +28,6 @@ const initialState: RequestCreationState = {
   step: 1,
   selectedAsset: undefined,
   description: '',
-  timeline: '',
-  estimatedDataPoints: '1-5',
 };
 
 export const RequestCreationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -44,8 +38,6 @@ export const RequestCreationProvider: React.FC<{ children: ReactNode }> = ({ chi
     setStep: (step) => setState((prev) => ({ ...prev, step })),
     setSelectedAsset: (selectedAsset) => setState((prev) => ({ ...prev, selectedAsset })),
     setDescription: (description) => setState((prev) => ({ ...prev, description })),
-    setTimeline: (timeline) => setState((prev) => ({ ...prev, timeline })),
-    setEstimatedDataPoints: (estimatedDataPoints) => setState((prev) => ({ ...prev, estimatedDataPoints })),
     resetState: () => setState(initialState),
   };
 
