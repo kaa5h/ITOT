@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import UNSConfig from './pages/UNSConfig';
 import AssetSelection from './pages/create-request/AssetSelection';
 import DataDescription from './pages/create-request/DataDescription';
 import ReviewAndSend from './pages/create-request/ReviewAndSend';
@@ -16,6 +17,7 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/uns-config" element={<UNSConfig />} />
         <Route path="/create-request/asset" element={<AssetSelection />} />
         <Route path="/create-request/describe" element={<DataDescription />} />
         <Route path="/create-request/review" element={<ReviewAndSend />} />

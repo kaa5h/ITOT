@@ -9,6 +9,13 @@ export interface User {
   site?: string;
 }
 
+// UNS Structure Types
+export interface UNSLevel {
+  id: string;
+  name: string;
+  order: number;
+}
+
 // Asset Types
 export interface Asset {
   id: string;
@@ -231,6 +238,7 @@ export interface AppState {
   templates: Template[];
   requests: Request[];
   notifications: Notification[];
+  unsLevels: UNSLevel[];
   setCurrentUser: (user: User) => void;
   addRequest: (request: Request) => void;
   updateRequest: (id: string, updates: Partial<Request>) => void;
@@ -238,6 +246,7 @@ export interface AppState {
   addNotification: (notification: Notification) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
+  setUNSLevels: (levels: UNSLevel[]) => void;
 }
 
 // Export Types

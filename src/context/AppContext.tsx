@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { AppState, User, Request, Message, Notification } from '../types';
+import { AppState, User, Request, Message, Notification, UNSLevel } from '../types';
 import { users as initialUsers, assets, templates, requests as initialRequests } from '../data/dummyData';
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -38,6 +38,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [users] = useState<User[]>(initialUsers);
   const [requests, setRequests] = useState<Request[]>(initialRequests.map(migrateRequest));
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Default UNS structure (can be customized by power users)
+  const defaultUNSLevels: UNSLevel[] = [
+    { id: 'level-1', name: 'Company', order: 1 },
+    { id: 'level-2', name: 'Plant', order: 2 },
+    { id: 'level-3', name: 'Shop', order: 3 },
+    { id: 'level-4', name: 'Line', order: 4 },
+    { id: 'level-5', name: 'Cell', order: 5 },
+    { id: 'level-6', name: 'Machine', order: 6 },
+  ];
+  const [unsLevels, setUNSLevels] = useState<UNSLevel[]>(defaultUNSLevels);
 
   const addRequest = (request: Request) => {
     setRequests((prev) => [...prev, request]);
@@ -171,6 +182,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     templates,
     requests,
     notifications,
+    unsLevels,
     setCurrentUser,
     addRequest,
     updateRequest,
@@ -178,6 +190,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addNotification,
     markNotificationRead,
     markAllNotificationsRead,
+    setUNSLevels,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

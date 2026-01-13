@@ -91,6 +91,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </Link>
 
+            {/* Navigation Tabs */}
+            <div className="flex items-center space-x-1 flex-1 mx-8">
+              <Link
+                to="/"
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === '/' || location.pathname.startsWith('/request/') || location.pathname.startsWith('/create-request/')
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                Requests
+              </Link>
+              <Link
+                to="/uns-config"
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/uns-config'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Manual UNS Structure Input
+              </Link>
+            </div>
+
             {/* Right side */}
             <div className="flex items-center space-x-4">
               {/* User Switcher (for demo) */}
