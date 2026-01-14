@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Send, Play, AlertCircle, X } from 'lucide-react';
+import { Send, Play, AlertCircle, X, Copy, Check, Link } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Endpoint, Message, TemplateField } from '../types';
 import { StatusBadge, Comment } from '../components/JiraComponents';
@@ -46,6 +46,9 @@ const OTResponse: React.FC = () => {
   const [blockReason, setBlockReason] = useState('');
   const [offerAlternative, setOfferAlternative] = useState(false);
   const [alternativeDescription, setAlternativeDescription] = useState('');
+
+  // Shareable URL State
+  const [urlCopied, setUrlCopied] = useState(false);
 
   useEffect(() => {
     if (request && request.endpoints.length > 0) {
@@ -307,6 +310,15 @@ const OTResponse: React.FC = () => {
     navigate('/');
   };
 
+  const handleCopyUrl = () => {
+    const fullUrl = request.requestUrl
+      ? `${window.location.origin}${request.requestUrl}`
+      : window.location.href;
+    navigator.clipboard.writeText(fullUrl);
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
+  };
+
 
   // Check if request is unclaimed
   const isUnclaimed = !request.claimedByEmail;
@@ -487,6 +499,44 @@ const OTResponse: React.FC = () => {
             </ul>
           </div>
         </div>
+
+        {/* Shareable URL Display */}
+        {request.requestUrl && (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+            <div className="flex items-center space-x-2 mb-3">
+              <Link className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Shareable URL</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              This request can be accessed via the following unique link. Share this with other OT personnel if needed.
+            </p>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={`${window.location.origin}${request.requestUrl}`}
+                readOnly
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleCopyUrl}
+                className="inline-flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                {urlCopied ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center space-x-4">
           <button
