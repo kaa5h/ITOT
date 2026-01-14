@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
       const matchesRole =
         currentUser.role === 'Admin' ? true : // Admin sees all
         currentUser.role === 'IT' ? (req.createdBy === currentUser.name || req.status === 'review') : // IT sees created by them or awaiting review
-        currentUser.role === 'OT' ? req.assignedTo === currentUser.name : // OT sees assigned to them
+        currentUser.role === 'OT' ? (req.claimedByEmail === currentUser.email || req.assignedTo === currentUser.name) : // OT sees claimed by their email or assigned to them (legacy)
         false;
 
       const matchesSearch =

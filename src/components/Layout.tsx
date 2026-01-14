@@ -1,6 +1,6 @@
 import React, { ReactNode, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings, Bell, X } from 'lucide-react';
+import { Settings, Bell, X, Mail } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 interface LayoutProps {
@@ -8,17 +8,23 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { currentUser, users, setCurrentUser, notifications, markNotificationRead, markAllNotificationsRead } = useAppContext();
+  const { currentUser, users, setCurrentUser, notifications, markNotificationRead, markAllNotificationsRead, emails, markEmailRead } = useAppContext();
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showEmails, setShowEmails] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLDivElement>(null);
 
   const isAdminPage = location.pathname.startsWith('/admin');
 
   // Filter notifications for current user
   const userNotifications = notifications.filter(n => n.to === currentUser.name);
   const unreadCount = userNotifications.filter(n => !n.read).length;
+
+  // Filter emails for current user's email address
+  const userEmails = emails.filter(e => e.to === currentUser.email);
+  const unreadEmailCount = userEmails.filter(e => !e.read).length;
 
   // Debug logging
   React.useEffect(() => {
@@ -45,10 +51,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, [showNotifications]);
 
+  // Close email dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emailRef.current && !emailRef.current.contains(event.target as Node)) {
+        setShowEmails(false);
+      }
+    };
+
+    if (showEmails) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmails]);
+
   const handleNotificationClick = (notification: typeof notifications[0]) => {
     markNotificationRead(notification.id);
     setShowNotifications(false);
     navigate(notification.link);
+  };
+
+  const handleEmailClick = (email: typeof emails[0]) => {
+    markEmailRead(email.id);
+    setShowEmails(false);
+    // Navigate to the request URL (construct from requestId and token)
+    if (email.requestId && email.requestToken) {
+      navigate(`/request/${email.requestId}/respond?token=${email.requestToken}`);
+    }
   };
 
   const formatNotificationTime = (timestamp: string) => {
@@ -210,6 +242,93 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                                 {!notification.read && (
                                   <div className="flex-shrink-0">
                                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Email Inbox (Demo) */}
+              <div className="relative" ref={emailRef}>
+                <button
+                  onClick={() => setShowEmails(!showEmails)}
+                  className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                  title="Email Inbox"
+                >
+                  <Mail className="w-5 h-5" />
+                  {unreadEmailCount > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-500 rounded-full">
+                      {unreadEmailCount > 9 ? '9+' : unreadEmailCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Email Dropdown */}
+                {showEmails && (
+                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[600px] overflow-hidden flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Email Inbox</h3>
+                        <p className="text-xs text-gray-500">{currentUser.email}</p>
+                      </div>
+                      <button
+                        onClick={() => setShowEmails(false)}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Email List */}
+                    <div className="overflow-y-auto flex-1">
+                      {userEmails.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          <Mail className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                          <p className="text-sm">No emails yet</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {userEmails.map((email) => (
+                            <button
+                              key={email.id}
+                              onClick={() => handleEmailClick(email)}
+                              className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
+                                !email.read ? 'bg-green-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-start space-x-3">
+                                {/* Icon */}
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                  <Mail className="w-4 h-4 text-green-600" />
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-gray-500">
+                                    From: {email.from}
+                                  </p>
+                                  <p className="text-sm text-gray-900 font-medium mt-1">
+                                    {email.subject}
+                                  </p>
+                                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                    {email.body}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {formatNotificationTime(email.timestamp)}
+                                  </p>
+                                </div>
+
+                                {/* Unread indicator */}
+                                {!email.read && (
+                                  <div className="flex-shrink-0">
+                                    <div className="w-2 h-2 bg-green-600 rounded-full"></div>
                                   </div>
                                 )}
                               </div>
