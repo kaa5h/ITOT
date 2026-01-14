@@ -312,6 +312,12 @@ const OTResponse: React.FC = () => {
   const isUnclaimed = !request.claimedByEmail;
   const isClaimedByOther = request.claimedByEmail && request.claimedByEmail !== currentUser.email;
 
+  console.log('[OTResponse] Request ID:', request.id);
+  console.log('[OTResponse] claimedByEmail:', request.claimedByEmail);
+  console.log('[OTResponse] isUnclaimed:', isUnclaimed);
+  console.log('[OTResponse] isClaimedByOther:', isClaimedByOther);
+  console.log('[OTResponse] showClaimModal:', showClaimModal);
+
   // Initial to-do view
   if (!hasStarted && request.status === 'to-do') {
     // If claimed by someone else, show message
@@ -399,7 +405,11 @@ const OTResponse: React.FC = () => {
 
           {isUnclaimed ? (
             <button
-              onClick={() => setShowClaimModal(true)}
+              onClick={() => {
+                console.log('[OTResponse] Claim Request clicked, opening modal');
+                console.log('[OTResponse] Request:', request);
+                setShowClaimModal(true);
+              }}
               className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Play className="w-5 h-5 mr-2" />
@@ -759,7 +769,10 @@ const OTResponse: React.FC = () => {
 
       {/* Claim Request Modal */}
       {showClaimModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+          console.log('[OTResponse] Modal backdrop clicked');
+          e.stopPropagation();
+        }}>
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
