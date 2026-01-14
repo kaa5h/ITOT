@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Play, AlertCircle, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Endpoint, Message, TemplateField } from '../types';
@@ -9,10 +9,15 @@ import { DataPointGrid } from '../components/DataPointGrid';
 const OTResponse: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { requests, updateRequest, addMessage, currentUser, templates, addEmail } = useAppContext();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const request = requests.find((r) => r.id === id);
+
+  // Check for confirm-claim action in URL
+  const confirmClaim = searchParams.get('confirm-claim');
+  const claimEmailParam = searchParams.get('claim-email');
 
   // OT Configuration State
   const [protocol, setProtocol] = useState(request?.connection?.protocol || '');
@@ -132,30 +137,15 @@ const OTResponse: React.FC = () => {
     }
 
     const now = new Date().toISOString();
-    const newHistoryEntry = {
-      id: 'history-' + Date.now(),
-      status: 'in-progress' as const,
-      timestamp: now,
-      changedBy: claimEmail,
-      note: `Request claimed by ${claimEmail}`
-    };
+    const confirmUrl = `/request/${request.id}/respond?confirm-claim=true&claim-email=${encodeURIComponent(claimEmail)}&token=${request.requestToken}`;
 
-    // Update request with claimed info
-    updateRequest(request.id, {
-      status: 'in-progress',
-      claimedByEmail: claimEmail,
-      claimedAt: now,
-      assignedTo: claimEmail,
-      statusHistory: [...(request.statusHistory || []), newHistoryEntry]
-    });
-
-    // Send confirmation email to claimer (demo)
+    // Send confirmation email (don't claim yet)
     addEmail({
       id: 'email-' + Date.now(),
       to: claimEmail,
       from: 'noreply@itot-tool.com',
-      subject: `Claim Confirmed: ${request.assetName}`,
-      body: `You have successfully claimed request ${request.id} for ${request.assetName}.\n\nYou can now configure the protocol and endpoints.`,
+      subject: `Confirm Claim: ${request.assetName}`,
+      body: `Click the link below to confirm your claim for request ${request.id} (${request.assetName}).\n\nConfirm Claim: ${window.location.origin}${confirmUrl}\n\nOnce confirmed, you'll be able to configure the protocol and endpoints.`,
       timestamp: now,
       read: false,
       requestId: request.id,
@@ -163,24 +153,50 @@ const OTResponse: React.FC = () => {
       emailType: 'claim_confirmation'
     });
 
-    // Notify IT that request was claimed
-    if (request.recipientEmails && request.recipientEmails.length > 0) {
+    setShowClaimModal(false);
+    // Show success message that confirmation email was sent
+    alert(`Confirmation email sent to ${claimEmail}. Please check your inbox and click the confirmation link.`);
+  };
+
+  // Handle confirm-claim action from URL
+  useEffect(() => {
+    if (confirmClaim === 'true' && claimEmailParam && request && !request.claimedByEmail) {
+      const now = new Date().toISOString();
+      const newHistoryEntry = {
+        id: 'history-' + Date.now(),
+        status: 'in-progress' as const,
+        timestamp: now,
+        changedBy: claimEmailParam,
+        note: `Request claimed by ${claimEmailParam}`
+      };
+
+      // Actually claim the request
+      updateRequest(request.id, {
+        status: 'in-progress',
+        claimedByEmail: claimEmailParam,
+        claimedAt: now,
+        assignedTo: claimEmailParam,
+        statusHistory: [...(request.statusHistory || []), newHistoryEntry]
+      });
+
+      // Notify IT that request was claimed
       addEmail({
         id: 'email-' + Date.now() + '-it',
-        to: request.createdBy, // Send to IT creator
+        to: request.createdBy,
         from: 'noreply@itot-tool.com',
         subject: `Request Claimed: ${request.assetName}`,
-        body: `Request ${request.id} for ${request.assetName} has been claimed by ${claimEmail}.`,
+        body: `Request ${request.id} for ${request.assetName} has been claimed by ${claimEmailParam}.`,
         timestamp: now,
         read: false,
         requestId: request.id,
         emailType: 'claimed_notification'
       });
-    }
 
-    setShowClaimModal(false);
-    setHasStarted(true);
-  };
+      // Remove the confirm-claim params from URL and reload
+      navigate(`/request/${request.id}/respond?token=${request.requestToken}`, { replace: true });
+      setHasStarted(true);
+    }
+  }, [confirmClaim, claimEmailParam, request, updateRequest, addEmail, navigate]);
 
   const handleSendMessage = () => {
     if (messageText.trim()) {
@@ -767,8 +783,8 @@ const OTResponse: React.FC = () => {
             <div className="p-6 space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
-                  Enter your work email to claim this request. You'll receive a confirmation email and
-                  will be able to configure the protocol and endpoints.
+                  Enter your work email to claim this request. We'll send you a confirmation email with a link.
+                  Click the link to confirm and start configuring the protocol and endpoints.
                 </p>
               </div>
 
@@ -816,7 +832,7 @@ const OTResponse: React.FC = () => {
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                Claim Request
+                Send Confirmation Email
               </button>
             </div>
           </div>
