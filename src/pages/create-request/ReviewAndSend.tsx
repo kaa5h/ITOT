@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, CheckCircle, Mail, Bell } from 'lucide-react';
+import { ChevronLeft, CheckCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useRequestCreation } from '../../context/RequestCreationContext';
 import { Request } from '../../types';
 
 const ReviewAndSend: React.FC = () => {
   const navigate = useNavigate();
-  const { addRequest, currentUser } = useAppContext();
+  const { addRequest, currentUser, addEmail } = useAppContext();
   const { selectedAsset, description, resetState, setStep } = useRequestCreation();
-
-  const [emailNotification, setEmailNotification] = useState(true);
-  const [inAppNotification, setInAppNotification] = useState(true);
 
   // Operations Settings (IT-defined, applies globally) - single select
   const [selectedOperation, setSelectedOperation] = useState<'subscribe' | 'read' | 'write'>('subscribe');
+
+  // Email-based assignment
+  const [recipientEmails, setRecipientEmails] = useState('');
+  const [emailError, setEmailError] = useState('');
 
 
   if (!selectedAsset || !description.trim()) {
@@ -28,21 +29,49 @@ const ReviewAndSend: React.FC = () => {
   };
 
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
+
   const handleSend = () => {
+    // Validate email input
+    if (!recipientEmails.trim()) {
+      setEmailError('Please enter at least one email address');
+      return;
+    }
+
+    // Parse and validate emails (comma-separated)
+    const emailList = recipientEmails.split(',').map(e => e.trim()).filter(e => e);
+    const invalidEmails = emailList.filter(e => !validateEmail(e));
+
+    if (invalidEmails.length > 0) {
+      setEmailError(`Invalid email format: ${invalidEmails.join(', ')}`);
+      return;
+    }
+
+    setEmailError('');
     const now = new Date().toISOString();
+    const requestId = 'REQ-' + Math.floor(1000 + Math.random() * 9000);
+    const requestToken = 'TOKEN-' + Math.random().toString(36).substring(2, 15);
+    const requestUrl = `/request/${requestId}/respond?token=${requestToken}`;
 
     const newRequest: Request = {
-      id: 'REQ-' + Math.floor(1000 + Math.random() * 9000),
+      id: requestId,
       assetId: selectedAsset.id,
       assetName: selectedAsset.name,
       location: selectedAsset.location,
       status: 'to-do',
       priority: 'Medium',
       createdBy: currentUser.name,
-      assignedTo: selectedAsset.owner,
+      assignedTo: 'Not assigned', // Will be assigned when claimed
       createdAt: now,
       updatedAt: now,
       description,
+      // Email-based assignment
+      recipientEmails: emailList,
+      requestToken,
+      requestUrl,
       // IT-defined operations (applies globally to all endpoints)
       operations: {
         subscribe: selectedOperation === 'subscribe',
@@ -58,11 +87,28 @@ const ReviewAndSend: React.FC = () => {
         status: 'to-do',
         timestamp: now,
         changedBy: currentUser.name,
-        note: 'Request created and sent to OT'
+        note: `Request created and sent to: ${emailList.join(', ')}`
       }]
     };
 
     addRequest(newRequest);
+
+    // Send email to each recipient
+    emailList.forEach(email => {
+      addEmail({
+        id: 'email-' + Date.now() + '-' + Math.random(),
+        to: email,
+        from: 'noreply@itot-tool.com',
+        subject: `New Data Request: ${selectedAsset.name}`,
+        body: `You have a new data request for ${selectedAsset.name}.\n\nRequest ID: ${requestId}\nMachine: ${selectedAsset.name}\nMQTT Topic: ${selectedAsset.location}\n\nClick to open request: ${requestUrl}`,
+        timestamp: now,
+        read: false,
+        requestId,
+        requestToken,
+        emailType: 'request_sent'
+      });
+    });
+
     resetState();
 
     // Show success and redirect
@@ -165,19 +211,44 @@ const ReviewAndSend: React.FC = () => {
         </div>
       </div>
 
-      {/* Assignment Card */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-        <div className="flex items-center space-x-3 mb-3">
-          <CheckCircle className="w-6 h-6 text-green-600" />
-          <h2 className="text-lg font-semibold text-green-900">Ready to Send</h2>
-        </div>
-        <div className="text-sm text-green-800">
-          <p className="mb-2">
-            This request will be assigned to: <span className="font-medium">{selectedAsset.owner}</span>
+      {/* Send Request To (Email) */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          Send Request To <span className="text-red-500">*</span>
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Enter the email address(es) of the OT personnel who should receive this request.
+          You can enter one or multiple emails separated by commas.
+        </p>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            OT Email Address(es) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={recipientEmails}
+            onChange={(e) => {
+              setRecipientEmails(e.target.value);
+              setEmailError('');
+            }}
+            placeholder="e.g., ot@company.com or ot1@company.com, ot2@company.com"
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+              emailError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+            }`}
+          />
+          {emailError && (
+            <p className="text-sm text-red-600 mt-1">{emailError}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            Separate multiple emails with commas. Only format validation is performed - no ownership verification.
           </p>
-          <p className="text-green-700">
-            They will determine the protocol, configure connection details, and map your conceptual
-            requirements to technical endpoint configurations.
+        </div>
+
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs text-amber-800">
+            <strong>Note:</strong> The system will generate a unique, tokenized link and send it to the specified email(s).
+            Anyone with the link can claim and work on this request.
           </p>
         </div>
       </div>
@@ -185,40 +256,9 @@ const ReviewAndSend: React.FC = () => {
       {/* Info Box */}
       <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
         <p className="text-sm text-blue-800">
-          <strong>What happens next:</strong> OT personnel will review your requirements, determine which
-          protocol this machine uses, configure the network connection, and translate your conceptual data
-          needs into specific technical configurations. They may ask clarifying questions via the built-in
-          chat if needed.
+          <strong>What happens next:</strong> An email with a unique link will be sent to the address(es) you provided.
+          The first person to claim the request will be able to configure the protocol, connection details, and endpoints.
         </p>
-      </div>
-
-      {/* Notification Preferences */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h2>
-        <div className="space-y-3">
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={emailNotification}
-              onChange={(e) => setEmailNotification(e.target.checked)}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <Mail className="w-5 h-5 text-gray-600" />
-            <span className="text-sm text-gray-700">
-              Send email notification to {selectedAsset.owner}
-            </span>
-          </label>
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={inAppNotification}
-              onChange={(e) => setInAppNotification(e.target.checked)}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="text-sm text-gray-700">Send in-app notification</span>
-          </label>
-        </div>
       </div>
 
       {/* Actions */}

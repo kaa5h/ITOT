@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { AppState, User, Request, Message, Notification } from '../types';
+import { AppState, User, Request, Message, Notification, Email } from '../types';
 import { users as initialUsers, assets, templates, requests as initialRequests } from '../data/dummyData';
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -38,6 +38,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [users] = useState<User[]>(initialUsers);
   const [requests, setRequests] = useState<Request[]>(initialRequests.map(migrateRequest));
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [emails, setEmails] = useState<Email[]>([]); // Demo email inbox
 
   const addRequest = (request: Request) => {
     setRequests((prev) => [...prev, request]);
@@ -164,6 +165,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     );
   };
 
+  const addEmail = (email: Email) => {
+    setEmails((prev) => [email, ...prev]);
+  };
+
+  const markEmailRead = (id: string) => {
+    setEmails((prev) =>
+      prev.map((email) => (email.id === id ? { ...email, read: true } : email))
+    );
+  };
+
   const value: AppState = {
     currentUser,
     users,
@@ -171,6 +182,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     templates,
     requests,
     notifications,
+    emails,
     setCurrentUser,
     addRequest,
     updateRequest,
@@ -178,6 +190,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addNotification,
     markNotificationRead,
     markAllNotificationsRead,
+    addEmail,
+    markEmailRead,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

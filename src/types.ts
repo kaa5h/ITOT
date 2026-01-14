@@ -180,9 +180,16 @@ export interface Request {
   status: RequestStatus;
   priority: Priority;
   createdBy: string;
-  assignedTo: string;
+  assignedTo: string; // Deprecated - kept for backward compatibility
   createdAt: string;
   updatedAt: string;
+
+  // Email-based assignment (new system)
+  recipientEmails?: string[]; // Email(s) IT entered when creating request
+  requestToken?: string; // Unique token for shareable link
+  claimedByEmail?: string; // Email of person who claimed the request
+  claimedAt?: string; // When request was claimed
+  requestUrl?: string; // Full shareable URL
 
   // IT-defined requirements
   description: string; // IT's conceptual description of what data is needed
@@ -231,6 +238,7 @@ export interface AppState {
   templates: Template[];
   requests: Request[];
   notifications: Notification[];
+  emails: Email[]; // Demo email inbox
   setCurrentUser: (user: User) => void;
   addRequest: (request: Request) => void;
   updateRequest: (id: string, updates: Partial<Request>) => void;
@@ -238,6 +246,22 @@ export interface AppState {
   addNotification: (notification: Notification) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
+  addEmail: (email: Email) => void;
+  markEmailRead: (id: string) => void;
+}
+
+// Email Types (for demo inbox simulation)
+export interface Email {
+  id: string;
+  to: string; // Recipient email
+  from: string;
+  subject: string;
+  body: string;
+  timestamp: string;
+  read: boolean;
+  requestId?: string; // Associated request ID
+  requestToken?: string; // Token for request URL
+  emailType: 'request_sent' | 'claim_confirmation' | 'submit_confirmation' | 'claimed_notification' | 'submitted_notification';
 }
 
 // Export Types

@@ -1,25 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
 import { useRequestCreation } from '../../context/RequestCreationContext';
 import { Asset } from '../../types';
 
 const AssetSelection: React.FC = () => {
   const navigate = useNavigate();
-  const { users } = useAppContext();
   const { setSelectedAsset, setStep } = useRequestCreation();
-
-  // Filter OT users
-  const otUsers = users.filter(user => user.role === 'OT');
 
   // State for MQTT topic and machine name
   const [mqttTopic, setMqttTopic] = useState('');
   const [machineName, setMachineName] = useState('');
-  const [assignedTo, setAssignedTo] = useState(otUsers[0]?.name || '');
 
   const handleNext = () => {
-    if (!mqttTopic.trim() || !machineName.trim() || !assignedTo) {
+    if (!mqttTopic.trim() || !machineName.trim()) {
       return;
     }
 
@@ -36,7 +30,7 @@ const AssetSelection: React.FC = () => {
       shop: mqttTopic.split('/')[2] || '',
       line: mqttTopic.split('/')[3] || '',
       station: mqttTopic.split('/')[4] || '',
-      owner: assignedTo,
+      owner: 'Not assigned', // Will be assigned when OT claims
     };
 
     setSelectedAsset(manualAsset);
@@ -44,7 +38,7 @@ const AssetSelection: React.FC = () => {
     navigate('/create-request/describe');
   };
 
-  const canProceed = mqttTopic.trim() && machineName.trim() && assignedTo;
+  const canProceed = mqttTopic.trim() && machineName.trim();
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -112,32 +106,11 @@ const AssetSelection: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
-          {/* Assign To Dropdown */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assign To <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {otUsers.map(user => (
-                <option key={user.id} value={user.name}>
-                  {user.name}{user.site ? ` - ${user.site}` : ''}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Select which OT person will handle this request
-            </p>
-          </div>
         </div>
       </div>
 
       {/* Preview */}
-      {(mqttTopic || machineName || assignedTo) && (
+      {(mqttTopic || machineName) && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="text-sm font-semibold text-blue-900 mb-2">Preview</h3>
           <div className="space-y-1 text-sm">
@@ -153,12 +126,6 @@ const AssetSelection: React.FC = () => {
                 <span className="text-blue-900 font-mono">{mqttTopic}</span>
               </div>
             )}
-            {assignedTo && (
-              <div>
-                <span className="text-blue-700">Assigned To: </span>
-                <span className="text-blue-900 font-medium">{assignedTo}</span>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -168,6 +135,7 @@ const AssetSelection: React.FC = () => {
         <p className="text-sm text-gray-700">
           <strong>Note:</strong> This tool assumes your organization already has an MQTT topic strategy in place.
           Simply paste the existing topic path for the machine you need data from.
+          You'll specify who to send this request to in the next step.
         </p>
       </div>
 
