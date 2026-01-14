@@ -318,12 +318,104 @@ const OTResponse: React.FC = () => {
   console.log('[OTResponse] isClaimedByOther:', isClaimedByOther);
   console.log('[OTResponse] showClaimModal:', showClaimModal);
 
+  // Render modals at top level so they're always available
+  const renderModals = () => (
+    <>
+      {/* Claim Request Modal */}
+      {showClaimModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+          console.log('[OTResponse] Modal backdrop clicked');
+          e.stopPropagation();
+        }}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <Play className="w-6 h-6 text-green-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Claim Request</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setShowClaimModal(false);
+                  setClaimEmail('');
+                  setClaimEmailError('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  Enter your work email to claim this request. We'll send you a confirmation email with a link.
+                  Click the link to confirm and start configuring the protocol and endpoints.
+                </p>
+              </div>
+
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Work Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={claimEmail}
+                  onChange={(e) => {
+                    setClaimEmail(e.target.value);
+                    setClaimEmailError('');
+                  }}
+                  placeholder="your.name@company.com"
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                    claimEmailError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
+                  }`}
+                />
+                {claimEmailError && (
+                  <p className="text-sm text-red-600 mt-1">{claimEmailError}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowClaimModal(false);
+                  setClaimEmail('');
+                  setClaimEmailError('');
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClaimRequest}
+                disabled={!claimEmail.trim()}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  claimEmail.trim()
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Send Confirmation Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   // Initial to-do view
   if (!hasStarted && request.status === 'to-do') {
     // If claimed by someone else, show message
     if (isClaimedByOther) {
       return (
-        <div className="max-w-4xl mx-auto">
+        <>
+          {renderModals()}
+          <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               Integration Request from {request.createdBy}
@@ -345,11 +437,14 @@ const OTResponse: React.FC = () => {
             </div>
           </div>
         </div>
+        </>
       );
     }
 
     return (
-      <div className="max-w-4xl mx-auto">
+      <>
+        {renderModals()}
+        <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
             Integration Request from {request.createdBy}
@@ -426,12 +521,15 @@ const OTResponse: React.FC = () => {
           )}
         </div>
       </div>
+      </>
     );
   }
 
   // Main configuration view (split screen)
   return (
-    <div>
+    <>
+      {renderModals()}
+      <div>
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -767,91 +865,6 @@ const OTResponse: React.FC = () => {
         </div>
       </div>
 
-      {/* Claim Request Modal */}
-      {showClaimModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
-          console.log('[OTResponse] Modal backdrop clicked');
-          e.stopPropagation();
-        }}>
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <Play className="w-6 h-6 text-green-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Claim Request</h2>
-              </div>
-              <button
-                onClick={() => {
-                  setShowClaimModal(false);
-                  setClaimEmail('');
-                  setClaimEmailError('');
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">
-                  Enter your work email to claim this request. We'll send you a confirmation email with a link.
-                  Click the link to confirm and start configuring the protocol and endpoints.
-                </p>
-              </div>
-
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Work Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={claimEmail}
-                  onChange={(e) => {
-                    setClaimEmail(e.target.value);
-                    setClaimEmailError('');
-                  }}
-                  placeholder="your.name@company.com"
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    claimEmailError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
-                  }`}
-                />
-                {claimEmailError && (
-                  <p className="text-sm text-red-600 mt-1">{claimEmailError}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowClaimModal(false);
-                  setClaimEmail('');
-                  setClaimEmailError('');
-                }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClaimRequest}
-                disabled={!claimEmail.trim()}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  claimEmail.trim()
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Send Confirmation Email
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Block Request Modal */}
       {showBlockModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -961,8 +974,8 @@ const OTResponse: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
+    </>
   );
 };
 
