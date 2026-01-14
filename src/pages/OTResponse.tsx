@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Send, Play, AlertCircle, X, Copy, Check, Link } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Endpoint, Message, TemplateField } from '../types';
@@ -9,15 +9,10 @@ import { DataPointGrid } from '../components/DataPointGrid';
 const OTResponse: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { requests, updateRequest, addMessage, currentUser, templates, addEmail } = useAppContext();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const request = requests.find((r) => r.id === id);
-
-  // Check for confirm-claim action in URL
-  const confirmClaim = searchParams.get('confirm-claim');
-  const claimEmailParam = searchParams.get('claim-email');
 
   // OT Configuration State
   const [protocol, setProtocol] = useState(request?.connection?.protocol || '');
@@ -140,66 +135,43 @@ const OTResponse: React.FC = () => {
     }
 
     const now = new Date().toISOString();
-    const confirmUrl = `/request/${request.id}/respond?confirm-claim=true&claim-email=${encodeURIComponent(claimEmail)}&token=${request.requestToken}`;
+    const newHistoryEntry = {
+      id: 'history-' + Date.now(),
+      status: 'in-progress' as const,
+      timestamp: now,
+      changedBy: claimEmail,
+      note: `Request claimed by ${claimEmail}`
+    };
 
-    // Send confirmation email (don't claim yet)
+    // Claim the request immediately
+    updateRequest(request.id, {
+      status: 'in-progress',
+      claimedByEmail: claimEmail,
+      claimedAt: now,
+      assignedTo: claimEmail,
+      statusHistory: [...(request.statusHistory || []), newHistoryEntry]
+    });
+
+    // Notify IT that request was claimed
     addEmail({
-      id: 'email-' + Date.now(),
-      to: claimEmail,
+      id: 'email-' + Date.now() + '-it',
+      to: request.createdBy,
       from: 'noreply@itot-tool.com',
-      subject: `Confirm Claim: ${request.assetName}`,
-      body: `Click the link below to confirm your claim for request ${request.id} (${request.assetName}).\n\nConfirm Claim: ${window.location.origin}${confirmUrl}\n\nOnce confirmed, you'll be able to configure the protocol and endpoints.`,
+      subject: `Request Claimed: ${request.assetName}`,
+      body: `Request ${request.id} for ${request.assetName} has been claimed by ${claimEmail}.`,
       timestamp: now,
       read: false,
       requestId: request.id,
-      requestToken: request.requestToken,
-      emailType: 'claim_confirmation'
+      emailType: 'claimed_notification'
     });
 
+    // Close modal and open request
     setShowClaimModal(false);
-    // Show success message that confirmation email was sent
-    alert(`Confirmation email sent to ${claimEmail}. Please check your inbox and click the confirmation link.`);
+    setClaimEmail('');
+    setClaimEmailError('');
+    setHasStarted(true);
   };
 
-  // Handle confirm-claim action from URL
-  useEffect(() => {
-    if (confirmClaim === 'true' && claimEmailParam && request && !request.claimedByEmail) {
-      const now = new Date().toISOString();
-      const newHistoryEntry = {
-        id: 'history-' + Date.now(),
-        status: 'in-progress' as const,
-        timestamp: now,
-        changedBy: claimEmailParam,
-        note: `Request claimed by ${claimEmailParam}`
-      };
-
-      // Actually claim the request
-      updateRequest(request.id, {
-        status: 'in-progress',
-        claimedByEmail: claimEmailParam,
-        claimedAt: now,
-        assignedTo: claimEmailParam,
-        statusHistory: [...(request.statusHistory || []), newHistoryEntry]
-      });
-
-      // Notify IT that request was claimed
-      addEmail({
-        id: 'email-' + Date.now() + '-it',
-        to: request.createdBy,
-        from: 'noreply@itot-tool.com',
-        subject: `Request Claimed: ${request.assetName}`,
-        body: `Request ${request.id} for ${request.assetName} has been claimed by ${claimEmailParam}.`,
-        timestamp: now,
-        read: false,
-        requestId: request.id,
-        emailType: 'claimed_notification'
-      });
-
-      // Remove the confirm-claim params from URL and reload
-      navigate(`/request/${request.id}/respond?token=${request.requestToken}`, { replace: true });
-      setHasStarted(true);
-    }
-  }, [confirmClaim, claimEmailParam, request, updateRequest, addEmail, navigate]);
 
   const handleSendMessage = () => {
     if (messageText.trim()) {
@@ -362,8 +334,8 @@ const OTResponse: React.FC = () => {
             <div className="p-6 space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
-                  Enter your work email to claim this request. We'll send you a confirmation email with a link.
-                  Click the link to confirm and start configuring the protocol and endpoints.
+                  Enter your work email to claim this request and start configuring the protocol and endpoints.
+                  You'll be able to save your progress and return later using the URL.
                 </p>
               </div>
 
@@ -405,13 +377,14 @@ const OTResponse: React.FC = () => {
               <button
                 onClick={handleClaimRequest}
                 disabled={!claimEmail.trim()}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`inline-flex items-center px-6 py-2 rounded-lg transition-colors ${
                   claimEmail.trim()
                     ? 'bg-green-600 text-white hover:bg-green-700'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                Send Confirmation Email
+                <Play className="w-4 h-4 mr-2" />
+                Open Request
               </button>
             </div>
           </div>
