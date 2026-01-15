@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { AppState, User, Request, Message, Notification, Email } from '../types';
+import { AppState, User, Request, Message, Notification, Email, Template } from '../types';
 import { users as initialUsers, assets, templates, requests as initialRequests } from '../data/dummyData';
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -39,6 +39,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [requests, setRequests] = useState<Request[]>(initialRequests.map(migrateRequest));
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [emails, setEmails] = useState<Email[]>([]); // Demo email inbox
+  const [templatesState, setTemplatesState] = useState(templates);
 
   const addRequest = (request: Request) => {
     setRequests((prev) => [...prev, request]);
@@ -175,11 +176,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     );
   };
 
+  const addTemplate = (template: Template) => {
+    setTemplatesState((prev) => [...prev, template]);
+  };
+
+  const updateTemplate = (id: string, updates: Partial<Template>) => {
+    setTemplatesState((prev) =>
+      prev.map((template) => (template.id === id ? { ...template, ...updates } : template))
+    );
+  };
+
+  const deleteTemplate = (id: string) => {
+    setTemplatesState((prev) => prev.filter((template) => template.id !== id));
+  };
+
   const value: AppState = {
     currentUser,
     users,
     assets,
-    templates,
+    templates: templatesState,
     requests,
     notifications,
     emails,
@@ -192,6 +207,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     markAllNotificationsRead,
     addEmail,
     markEmailRead,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

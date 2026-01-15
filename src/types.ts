@@ -248,6 +248,9 @@ export interface AppState {
   markAllNotificationsRead: () => void;
   addEmail: (email: Email) => void;
   markEmailRead: (id: string) => void;
+  addTemplate: (template: Template) => void;
+  updateTemplate: (id: string, updates: Partial<Template>) => void;
+  deleteTemplate: (id: string) => void;
 }
 
 // Email Types (for demo inbox simulation)
