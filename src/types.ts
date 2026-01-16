@@ -239,6 +239,7 @@ export interface AppState {
   requests: Request[];
   notifications: Notification[];
   emails: Email[]; // Demo email inbox
+  loggedInOTEmail: string | null; // Email of logged-in OT user (for demo)
   setCurrentUser: (user: User) => void;
   addRequest: (request: Request) => void;
   updateRequest: (id: string, updates: Partial<Request>) => void;
@@ -251,6 +252,8 @@ export interface AppState {
   addTemplate: (template: Template) => void;
   updateTemplate: (id: string, updates: Partial<Template>) => void;
   deleteTemplate: (id: string) => void;
+  loginOT: (email: string, password: string) => boolean;
+  logoutOT: () => void;
 }
 
 // Email Types (for demo inbox simulation)

@@ -40,6 +40,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [emails, setEmails] = useState<Email[]>([]); // Demo email inbox
   const [templatesState, setTemplatesState] = useState(templates);
+  const [loggedInOTEmail, setLoggedInOTEmail] = useState<string | null>(() => {
+    // Check localStorage for existing login
+    return localStorage.getItem('loggedInOTEmail');
+  });
 
   const addRequest = (request: Request) => {
     setRequests((prev) => [...prev, request]);
@@ -190,6 +194,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setTemplatesState((prev) => prev.filter((template) => template.id !== id));
   };
 
+  const loginOT = (email: string, password: string): boolean => {
+    // Demo login: john.smith@company.com / 12345678
+    if (email === 'john.smith@company.com' && password === '12345678') {
+      setLoggedInOTEmail(email);
+      localStorage.setItem('loggedInOTEmail', email);
+      return true;
+    }
+    return false;
+  };
+
+  const logoutOT = () => {
+    setLoggedInOTEmail(null);
+    localStorage.removeItem('loggedInOTEmail');
+  };
+
   const value: AppState = {
     currentUser,
     users,
@@ -198,6 +217,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     requests,
     notifications,
     emails,
+    loggedInOTEmail,
     setCurrentUser,
     addRequest,
     updateRequest,
@@ -210,6 +230,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addTemplate,
     updateTemplate,
     deleteTemplate,
+    loginOT,
+    logoutOT,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

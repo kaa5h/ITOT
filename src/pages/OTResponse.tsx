@@ -9,10 +9,16 @@ import { DataPointGrid } from '../components/DataPointGrid';
 const OTResponse: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { requests, updateRequest, addMessage, currentUser, templates, addEmail } = useAppContext();
+  const { requests, updateRequest, addMessage, currentUser, templates, addEmail, loggedInOTEmail, loginOT } = useAppContext();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const request = requests.find((r) => r.id === id);
+
+  // Login overlay state
+  const [showLoginOverlay, setShowLoginOverlay] = useState(!loggedInOTEmail);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   // OT Configuration State
   const [protocol, setProtocol] = useState(request?.connection?.protocol || '');
@@ -54,6 +60,31 @@ const OTResponse: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [request?.conversation]);
+
+  // Update login overlay state when login status changes
+  useEffect(() => {
+    if (loggedInOTEmail) {
+      setShowLoginOverlay(false);
+    }
+  }, [loggedInOTEmail]);
+
+  const handleLogin = () => {
+    setLoginError('');
+
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setLoginError('Please enter both email and password');
+      return;
+    }
+
+    const success = loginOT(loginEmail, loginPassword);
+    if (success) {
+      setShowLoginOverlay(false);
+      setLoginEmail('');
+      setLoginPassword('');
+    } else {
+      setLoginError('Invalid credentials. Use john.smith@company.com / 12345678');
+    }
+  };
 
   if (!request) {
     return (
@@ -552,7 +583,79 @@ const OTResponse: React.FC = () => {
   return (
     <>
       {renderModals()}
-      <div>
+
+      {/* Login Overlay */}
+      {showLoginOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Blurred Background */}
+          <div className="absolute inset-0 backdrop-blur-sm bg-gray-900/30"></div>
+
+          {/* Login Modal */}
+          <div className="relative z-10 bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Log in to work on this request</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Please enter your credentials to access this request
+            </p>
+
+            {/* Login Form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                  placeholder="john.smith@company.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                  placeholder="Enter password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {loginError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{loginError}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleLogin}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Log in
+              </button>
+            </div>
+
+            {/* Demo Hint */}
+            <div className="mt-6 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-xs text-gray-600">
+                <strong>Demo credentials:</strong>
+                <br />
+                Email: john.smith@company.com
+                <br />
+                Password: 12345678
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={showLoginOverlay ? 'blur-sm pointer-events-none' : ''}>
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -997,7 +1100,7 @@ const OTResponse: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
     </>
   );
 };
