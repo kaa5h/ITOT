@@ -58,7 +58,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, userRole, isCl
       'to-do': 'To Do',
       'in-progress': 'In Progress',
       blocked: 'Blocked',
-      review: 'Review',
+      review: 'In Review',
       complete: 'Complete',
       cancelled: 'Cancelled',
     };
