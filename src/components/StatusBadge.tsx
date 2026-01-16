@@ -38,7 +38,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       case 'blocked':
         return 'Blocked';
       case 'review':
-        return 'Review';
+        return 'In Review';
       case 'complete':
         return 'Complete';
       case 'cancelled':
