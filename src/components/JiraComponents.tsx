@@ -29,7 +29,13 @@ export const PriorityBadge: React.FC<{ priority: Priority }> = ({ priority }) =>
 };
 
 // Status Badge Component - JIRA style with colors
-export const StatusBadge: React.FC<{ status: RequestStatus }> = ({ status }) => {
+interface StatusBadgeProps {
+  status: RequestStatus;
+  userRole?: 'IT' | 'OT' | 'Admin';
+  isClaimed?: boolean;
+}
+
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, userRole, isClaimed = false }) => {
   const styles = {
     draft: 'bg-gray-100 text-gray-800 border-gray-300',
     'to-do': 'bg-gray-100 text-gray-800 border-gray-300',
@@ -40,19 +46,29 @@ export const StatusBadge: React.FC<{ status: RequestStatus }> = ({ status }) => 
     cancelled: 'bg-gray-100 text-gray-600 border-gray-300',
   };
 
-  const labels = {
-    draft: 'Draft',
-    'to-do': 'To Do',
-    'in-progress': 'In Progress',
-    blocked: 'Blocked',
-    review: 'Review',
-    complete: 'Complete',
-    cancelled: 'Cancelled',
+  const getLabel = () => {
+    // Special case: to-do status for unclaimed requests
+    if (status === 'to-do' && !isClaimed) {
+      return userRole === 'IT' ? 'Not claimed' : 'To Do';
+    }
+
+    // Default labels for all other cases
+    const labels = {
+      draft: 'Draft',
+      'to-do': 'To Do',
+      'in-progress': 'In Progress',
+      blocked: 'Blocked',
+      review: 'Review',
+      complete: 'Complete',
+      cancelled: 'Cancelled',
+    };
+
+    return labels[status];
   };
 
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}>
-      {labels[status]}
+      {getLabel()}
     </span>
   );
 };

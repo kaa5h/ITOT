@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, MessageCircle, AlertCircle, X, Search, Filter } from 'lucide-react';
+import { CheckCircle, MessageCircle, AlertCircle, X, Search, Filter, ChevronLeft } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import StatusBadge from '../components/StatusBadge';
 
@@ -182,6 +182,17 @@ const ITReview: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Back Button */}
+      <div className="mb-4">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5 mr-1" />
+          Back to overview
+        </button>
+      </div>
+
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">

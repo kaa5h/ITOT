@@ -226,7 +226,11 @@ const Dashboard: React.FC = () => {
                       <div className="text-sm font-medium text-gray-900">{req.id}</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <StatusBadge status={req.status} />
+                      <StatusBadge
+                        status={req.status}
+                        userRole={currentUser.role}
+                        isClaimed={!!req.claimedByEmail}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-gray-900">{req.assetName}</div>
