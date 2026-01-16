@@ -39,8 +39,6 @@ const OTResponse: React.FC = () => {
 
   // Claim Request Modal State
   const [showClaimModal, setShowClaimModal] = useState(false);
-  const [claimEmail, setClaimEmail] = useState('');
-  const [claimEmailError, setClaimEmailError] = useState('');
 
   // Block Request Modal State
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -148,21 +146,12 @@ const OTResponse: React.FC = () => {
     }
   };
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email.trim());
-  };
-
   const handleClaimRequest = () => {
-    // Validate email
-    if (!claimEmail.trim()) {
-      setClaimEmailError('Please enter your work email');
-      return;
-    }
+    // Use logged-in email instead of asking for it
+    const email = loggedInOTEmail || '';
 
-    if (!validateEmail(claimEmail)) {
-      setClaimEmailError('Invalid email format');
-      return;
+    if (!email) {
+      return; // Should not happen if login overlay works correctly
     }
 
     const now = new Date().toISOString();
@@ -170,16 +159,16 @@ const OTResponse: React.FC = () => {
       id: 'history-' + Date.now(),
       status: 'in-progress' as const,
       timestamp: now,
-      changedBy: claimEmail,
-      note: `Request claimed by ${claimEmail}`
+      changedBy: email,
+      note: `Request claimed by ${email}`
     };
 
     // Claim the request immediately
     updateRequest(request.id, {
       status: 'in-progress',
-      claimedByEmail: claimEmail,
+      claimedByEmail: email,
       claimedAt: now,
-      assignedTo: claimEmail,
+      assignedTo: email,
       statusHistory: [...(request.statusHistory || []), newHistoryEntry]
     });
 
@@ -189,7 +178,7 @@ const OTResponse: React.FC = () => {
       to: request.createdBy,
       from: 'noreply@itot-tool.com',
       subject: `Request Claimed: ${request.assetName}`,
-      body: `Request ${request.id} for ${request.assetName} has been claimed by ${claimEmail}.`,
+      body: `Request ${request.id} for ${request.assetName} has been claimed by ${email}.`,
       timestamp: now,
       read: false,
       requestId: request.id,
@@ -198,8 +187,6 @@ const OTResponse: React.FC = () => {
 
     // Close modal and open request
     setShowClaimModal(false);
-    setClaimEmail('');
-    setClaimEmailError('');
     setHasStarted(true);
   };
 
@@ -352,8 +339,6 @@ const OTResponse: React.FC = () => {
               <button
                 onClick={() => {
                   setShowClaimModal(false);
-                  setClaimEmail('');
-                  setClaimEmailError('');
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -365,31 +350,13 @@ const OTResponse: React.FC = () => {
             <div className="p-6 space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
-                  Enter your work email to claim this request and start configuring the protocol and endpoints.
+                  Claim this request to start configuring the protocol and endpoints.
                   You'll be able to save your progress and return later using the URL.
                 </p>
               </div>
 
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Work Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={claimEmail}
-                  onChange={(e) => {
-                    setClaimEmail(e.target.value);
-                    setClaimEmailError('');
-                  }}
-                  placeholder="your.name@company.com"
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    claimEmailError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
-                  }`}
-                />
-                {claimEmailError && (
-                  <p className="text-sm text-red-600 mt-1">{claimEmailError}</p>
-                )}
+              <div className="text-sm text-gray-600">
+                <p>Logged in as: <span className="font-medium text-gray-900">{loggedInOTEmail}</span></p>
               </div>
             </div>
 
@@ -398,8 +365,6 @@ const OTResponse: React.FC = () => {
               <button
                 onClick={() => {
                   setShowClaimModal(false);
-                  setClaimEmail('');
-                  setClaimEmailError('');
                 }}
                 className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -407,15 +372,10 @@ const OTResponse: React.FC = () => {
               </button>
               <button
                 onClick={handleClaimRequest}
-                disabled={!claimEmail.trim()}
-                className={`inline-flex items-center px-6 py-2 rounded-lg transition-colors ${
-                  claimEmail.trim()
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className="inline-flex items-center px-6 py-2 rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700"
               >
                 <Play className="w-4 h-4 mr-2" />
-                Open Request
+                Claim & Open Request
               </button>
             </div>
           </div>
@@ -638,6 +598,14 @@ const OTResponse: React.FC = () => {
                 className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Log in
+              </button>
+
+              {/* Sign Up Button (non-functional, for demo) */}
+              <button
+                onClick={() => {}}
+                className="w-full px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Sign up
               </button>
             </div>
 
