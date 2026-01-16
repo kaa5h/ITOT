@@ -10,6 +10,7 @@ import ExportData from './pages/ExportData';
 import AdminTemplates from './pages/admin/Templates';
 import AdminFleet from './pages/admin/Fleet';
 import AdminAI from './pages/admin/AIConfig';
+import EmailInbox from './pages/EmailInbox';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/admin/templates" element={<AdminTemplates />} />
         <Route path="/admin/fleet" element={<AdminFleet />} />
         <Route path="/admin/ai-config" element={<AdminAI />} />
+        <Route path="/email-inbox" element={<EmailInbox />} />
       </Routes>
     </Layout>
   );

@@ -146,6 +146,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </select>
               </div>
 
+              {/* John Smith Email Link */}
+              <Link
+                to="/email-inbox"
+                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Mail className="w-4 h-4 mr-1.5" />
+                John Smith Email
+              </Link>
+
               {/* Notifications */}
               <div className="relative" ref={notificationRef}>
                 <button
