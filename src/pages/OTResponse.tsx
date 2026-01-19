@@ -177,9 +177,12 @@ const OTResponse: React.FC = () => {
   // Function to handle direct claim (V10 flow)
   const handleDirectClaim = () => {
     console.log('[OTResponse] Direct claim initiated');
+    console.log('[OTResponse] loggedInOTEmail:', loggedInOTEmail);
+    console.log('[OTResponse] request.claimedByEmail:', request.claimedByEmail);
 
     // Check if already claimed by this user
     if (request.claimedByEmail === loggedInOTEmail) {
+      console.log('[OTResponse] Already claimed by this user, just opening');
       // Already claimed by this user, just open the page
       setHasStarted(true);
       return;
@@ -187,6 +190,7 @@ const OTResponse: React.FC = () => {
 
     // Check if user is logged in
     if (!loggedInOTEmail) {
+      console.log('[OTResponse] Not logged in, claiming with pending and showing login overlay');
       // Not logged in - claim first, then show login overlay
       // We'll complete the claim flow after login
       setPendingClaim(true);
@@ -199,6 +203,7 @@ const OTResponse: React.FC = () => {
         claimedAt: now,
       });
 
+      console.log('[OTResponse] Setting hasStarted=true and showLoginOverlay=true');
       setHasStarted(true);
       setShowLoginOverlay(true);
       return;
@@ -374,6 +379,10 @@ const OTResponse: React.FC = () => {
   console.log('[OTResponse] claimedByEmail:', request.claimedByEmail);
   console.log('[OTResponse] isUnclaimed:', isUnclaimed);
   console.log('[OTResponse] isClaimedByOther:', isClaimedByOther);
+  console.log('[OTResponse] hasStarted:', hasStarted);
+  console.log('[OTResponse] request.status:', request.status);
+  console.log('[OTResponse] showLoginOverlay:', showLoginOverlay);
+  console.log('[OTResponse] loggedInOTEmail:', loggedInOTEmail);
 
 
   // Initial to-do view
@@ -526,6 +535,9 @@ const OTResponse: React.FC = () => {
   }
 
   // Main configuration view (split screen)
+  console.log('[OTResponse] Rendering main configuration view');
+  console.log('[OTResponse] About to render login overlay, showLoginOverlay=', showLoginOverlay);
+
   return (
     <>
       {/* Login Overlay */}
