@@ -15,10 +15,11 @@ const OTResponse: React.FC = () => {
   const request = requests.find((r) => r.id === id);
 
   // Login overlay state
-  const [showLoginOverlay, setShowLoginOverlay] = useState(!loggedInOTEmail);
+  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [pendingClaim, setPendingClaim] = useState(false); // Track if claim is pending after login
 
   // OT Configuration State
   const [protocol, setProtocol] = useState(request?.connection?.protocol || '');
@@ -59,13 +60,6 @@ const OTResponse: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [request?.conversation]);
 
-  // Update login overlay state when login status changes
-  useEffect(() => {
-    if (loggedInOTEmail) {
-      setShowLoginOverlay(false);
-    }
-  }, [loggedInOTEmail]);
-
   const handleLogin = () => {
     setLoginError('');
 
@@ -79,6 +73,12 @@ const OTResponse: React.FC = () => {
       setShowLoginOverlay(false);
       setLoginEmail('');
       setLoginPassword('');
+
+      // If claim was pending, complete it now
+      if (pendingClaim) {
+        setPendingClaim(false);
+        performClaim(loggedInOTEmail || loginEmail);
+      }
     } else {
       setLoginError('Invalid credentials. Use john.smith@company.com / 12345678');
     }
@@ -146,14 +146,8 @@ const OTResponse: React.FC = () => {
     }
   };
 
-  const handleClaimRequest = () => {
-    // Use logged-in email instead of asking for it
-    const email = loggedInOTEmail || '';
-
-    if (!email) {
-      return; // Should not happen if login overlay works correctly
-    }
-
+  // Function to perform the actual claim
+  const performClaim = (email: string) => {
     const now = new Date().toISOString();
     const newHistoryEntry = {
       id: 'history-' + Date.now(),
@@ -188,6 +182,20 @@ const OTResponse: React.FC = () => {
     // Close modal and open request
     setShowClaimModal(false);
     setHasStarted(true);
+  };
+
+  const handleClaimRequest = () => {
+    // Check if user is logged in
+    if (!loggedInOTEmail) {
+      // User not logged in, show login overlay first
+      setPendingClaim(true);
+      setShowLoginOverlay(true);
+      setShowClaimModal(false); // Close claim modal
+      return;
+    }
+
+    // User is logged in, claim immediately
+    performClaim(loggedInOTEmail);
   };
 
 
@@ -355,9 +363,17 @@ const OTResponse: React.FC = () => {
                 </p>
               </div>
 
-              <div className="text-sm text-gray-600">
-                <p>Logged in as: <span className="font-medium text-gray-900">{loggedInOTEmail}</span></p>
-              </div>
+              {loggedInOTEmail && (
+                <div className="text-sm text-gray-600">
+                  <p>Logged in as: <span className="font-medium text-gray-900">{loggedInOTEmail}</span></p>
+                </div>
+              )}
+
+              {!loggedInOTEmail && (
+                <div className="text-sm text-gray-600">
+                  <p>You'll be asked to log in after clicking "Claim & Open Request"</p>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}
