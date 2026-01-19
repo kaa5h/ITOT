@@ -68,15 +68,14 @@ const OTResponse: React.FC = () => {
 
     const success = loginOT(loginEmail, loginPassword);
     if (success) {
-      setShowLoginOverlay(false);
-      setLoginEmail('');
-      setLoginPassword('');
+      console.log('[OTResponse] Login successful, closing overlay');
 
       // If claim was pending, complete it now with the real email
       if (pendingClaim && request) {
+        console.log('[OTResponse] Completing pending claim');
         setPendingClaim(false);
-        // Update the claim with the actual logged-in email
-        const email = loggedInOTEmail || loginEmail;
+        // Use loginEmail directly since state hasn't updated yet
+        const email = loginEmail;
         const now = new Date().toISOString();
         const newHistoryEntry = {
           id: 'history-' + Date.now(),
@@ -107,6 +106,12 @@ const OTResponse: React.FC = () => {
           emailType: 'claimed_notification'
         });
       }
+
+      // Close overlay and clear form
+      setShowLoginOverlay(false);
+      setLoginEmail('');
+      setLoginPassword('');
+      console.log('[OTResponse] Overlay closed, login complete');
     } else {
       setLoginError('Invalid credentials. Use john.smith@company.com / 12345678');
     }
@@ -540,8 +545,8 @@ const OTResponse: React.FC = () => {
 
   return (
     <>
-      {/* Login Overlay - FORCE SHOW FOR DEBUG */}
-      {true && (
+      {/* Login Overlay */}
+      {showLoginOverlay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Blurred Background */}
           <div className="absolute inset-0 backdrop-blur-sm bg-gray-900/30"></div>
