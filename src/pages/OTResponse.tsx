@@ -540,8 +540,8 @@ const OTResponse: React.FC = () => {
 
   return (
     <>
-      {/* Login Overlay */}
-      {showLoginOverlay && (
+      {/* Login Overlay - FORCE SHOW FOR DEBUG */}
+      {true && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Blurred Background */}
           <div className="absolute inset-0 backdrop-blur-sm bg-gray-900/30"></div>
