@@ -366,7 +366,9 @@ const OTResponse: React.FC = () => {
 
   // Check if request is unclaimed
   const isUnclaimed = !request.claimedByEmail;
-  const isClaimedByOther = request.claimedByEmail && request.claimedByEmail !== currentUser.email;
+  const isClaimedByOther = request.claimedByEmail &&
+    request.claimedByEmail !== loggedInOTEmail &&
+    request.claimedByEmail !== 'pending'; // Don't treat pending as claimed by other
 
   console.log('[OTResponse] Request ID:', request.id);
   console.log('[OTResponse] claimedByEmail:', request.claimedByEmail);
