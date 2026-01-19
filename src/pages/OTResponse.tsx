@@ -38,8 +38,6 @@ const OTResponse: React.FC = () => {
   const [messageText, setMessageText] = useState('');
   const [hasStarted, setHasStarted] = useState(request?.status !== 'to-do');
 
-  // Claim Request Modal State
-  const [showClaimModal, setShowClaimModal] = useState(false);
 
   // Block Request Modal State
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -74,10 +72,40 @@ const OTResponse: React.FC = () => {
       setLoginEmail('');
       setLoginPassword('');
 
-      // If claim was pending, complete it now
-      if (pendingClaim) {
+      // If claim was pending, complete it now with the real email
+      if (pendingClaim && request) {
         setPendingClaim(false);
-        performClaim(loggedInOTEmail || loginEmail);
+        // Update the claim with the actual logged-in email
+        const email = loggedInOTEmail || loginEmail;
+        const now = new Date().toISOString();
+        const newHistoryEntry = {
+          id: 'history-' + Date.now(),
+          status: 'in-progress' as const,
+          timestamp: now,
+          changedBy: email,
+          note: `Request claimed by ${email}`
+        };
+
+        updateRequest(request.id, {
+          status: 'in-progress',
+          claimedByEmail: email,
+          claimedAt: now,
+          assignedTo: email,
+          statusHistory: [...(request.statusHistory || []), newHistoryEntry]
+        });
+
+        // Notify IT that request was claimed
+        addEmail({
+          id: 'email-' + Date.now() + '-it',
+          to: request.createdBy,
+          from: 'noreply@itot-tool.com',
+          subject: `Request Claimed: ${request.assetName}`,
+          body: `Request ${request.id} for ${request.assetName} has been claimed by ${email}.`,
+          timestamp: now,
+          read: false,
+          requestId: request.id,
+          emailType: 'claimed_notification'
+        });
       }
     } else {
       setLoginError('Invalid credentials. Use john.smith@company.com / 12345678');
@@ -146,6 +174,40 @@ const OTResponse: React.FC = () => {
     }
   };
 
+  // Function to handle direct claim (V10 flow)
+  const handleDirectClaim = () => {
+    console.log('[OTResponse] Direct claim initiated');
+
+    // Check if already claimed by this user
+    if (request.claimedByEmail === loggedInOTEmail) {
+      // Already claimed by this user, just open the page
+      setHasStarted(true);
+      return;
+    }
+
+    // Check if user is logged in
+    if (!loggedInOTEmail) {
+      // Not logged in - claim first, then show login overlay
+      // We'll complete the claim flow after login
+      setPendingClaim(true);
+
+      // Claim the request immediately (using a placeholder until login completes)
+      const now = new Date().toISOString();
+      updateRequest(request.id, {
+        status: 'in-progress',
+        claimedByEmail: 'pending',
+        claimedAt: now,
+      });
+
+      setHasStarted(true);
+      setShowLoginOverlay(true);
+      return;
+    }
+
+    // User is logged in - claim directly
+    performClaim(loggedInOTEmail);
+  };
+
   // Function to perform the actual claim
   const performClaim = (email: string) => {
     const now = new Date().toISOString();
@@ -179,25 +241,9 @@ const OTResponse: React.FC = () => {
       emailType: 'claimed_notification'
     });
 
-    // Close modal and open request
-    setShowClaimModal(false);
+    // Open request
     setHasStarted(true);
   };
-
-  const handleClaimRequest = () => {
-    // Check if user is logged in
-    if (!loggedInOTEmail) {
-      // User not logged in, show login overlay first
-      setPendingClaim(true);
-      setShowLoginOverlay(true);
-      setShowClaimModal(false); // Close claim modal
-      return;
-    }
-
-    // User is logged in, claim immediately
-    performClaim(loggedInOTEmail);
-  };
-
 
   const handleSendMessage = () => {
     if (messageText.trim()) {
@@ -326,79 +372,7 @@ const OTResponse: React.FC = () => {
   console.log('[OTResponse] claimedByEmail:', request.claimedByEmail);
   console.log('[OTResponse] isUnclaimed:', isUnclaimed);
   console.log('[OTResponse] isClaimedByOther:', isClaimedByOther);
-  console.log('[OTResponse] showClaimModal:', showClaimModal);
 
-  // Render modals at top level so they're always available
-  const renderModals = () => (
-    <>
-      {/* Claim Request Modal */}
-      {showClaimModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
-          console.log('[OTResponse] Modal backdrop clicked');
-          e.stopPropagation();
-        }}>
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <Play className="w-6 h-6 text-green-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Claim Request</h2>
-              </div>
-              <button
-                onClick={() => {
-                  setShowClaimModal(false);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">
-                  Claim this request to start configuring the protocol and endpoints.
-                  You'll be able to save your progress and return later using the URL.
-                </p>
-              </div>
-
-              {loggedInOTEmail && (
-                <div className="text-sm text-gray-600">
-                  <p>Logged in as: <span className="font-medium text-gray-900">{loggedInOTEmail}</span></p>
-                </div>
-              )}
-
-              {!loggedInOTEmail && (
-                <div className="text-sm text-gray-600">
-                  <p>You'll be asked to log in after clicking "Claim & Open Request"</p>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowClaimModal(false);
-                }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClaimRequest}
-                className="inline-flex items-center px-6 py-2 rounded-lg transition-colors bg-green-600 text-white hover:bg-green-700"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Claim & Open Request
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
 
   // Initial to-do view
   if (!hasStarted && request.status === 'to-do') {
@@ -406,7 +380,6 @@ const OTResponse: React.FC = () => {
     if (isClaimedByOther) {
       return (
         <>
-          {renderModals()}
           <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -435,7 +408,6 @@ const OTResponse: React.FC = () => {
 
     return (
       <>
-        {renderModals()}
         <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -530,11 +502,7 @@ const OTResponse: React.FC = () => {
 
           {isUnclaimed ? (
             <button
-              onClick={() => {
-                console.log('[OTResponse] Claim Request clicked, opening modal');
-                console.log('[OTResponse] Request:', request);
-                setShowClaimModal(true);
-              }}
+              onClick={handleDirectClaim}
               className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Play className="w-5 h-5 mr-2" />
@@ -558,8 +526,6 @@ const OTResponse: React.FC = () => {
   // Main configuration view (split screen)
   return (
     <>
-      {renderModals()}
-
       {/* Login Overlay */}
       {showLoginOverlay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
