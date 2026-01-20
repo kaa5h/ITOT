@@ -63,15 +63,29 @@ const OTResponse: React.FC = () => {
   useEffect(() => {
     const token = searchParams.get('token');
 
+    console.log('[OTResponse][AUTO-CLAIM] Effect triggered');
+    console.log('[OTResponse][AUTO-CLAIM] token:', token);
+    console.log('[OTResponse][AUTO-CLAIM] request exists:', !!request);
+    console.log('[OTResponse][AUTO-CLAIM] request.id:', request?.id);
+    console.log('[OTResponse][AUTO-CLAIM] request.status:', request?.status);
+    console.log('[OTResponse][AUTO-CLAIM] request.claimedByEmail:', request?.claimedByEmail);
+    console.log('[OTResponse][AUTO-CLAIM] loggedInOTEmail:', loggedInOTEmail);
+    console.log('[OTResponse][AUTO-CLAIM] showLoginOverlay:', showLoginOverlay);
+
     // Only auto-claim if:
     // 1. There's a token in URL (coming from email)
-    // 2. Request exists and is to-do or pending
+    // 2. Request exists
     // 3. User is not logged in
+    // 4. Request is unclaimed or has pending claim
     if (token && request && !loggedInOTEmail) {
-      const isUnclaimedOrPending = !request.claimedByEmail || request.claimedByEmail === 'pending';
+      console.log('[OTResponse][AUTO-CLAIM] Conditions met, checking claim status');
 
-      if (isUnclaimedOrPending && request.status === 'to-do') {
-        console.log('[OTResponse] Auto-claiming from email link, token:', token);
+      const isUnclaimedOrPending = !request.claimedByEmail || request.claimedByEmail === 'pending';
+      console.log('[OTResponse][AUTO-CLAIM] isUnclaimedOrPending:', isUnclaimedOrPending);
+
+      // Allow auto-claim for to-do or already in-progress with pending
+      if (isUnclaimedOrPending && (request.status === 'to-do' || (request.status === 'in-progress' && request.claimedByEmail === 'pending'))) {
+        console.log('[OTResponse][AUTO-CLAIM] CLAIMING REQUEST NOW');
 
         // Claim the request with pending status
         const now = new Date().toISOString();
@@ -82,12 +96,17 @@ const OTResponse: React.FC = () => {
         });
 
         // Set states to show login overlay
+        console.log('[OTResponse][AUTO-CLAIM] Setting states: pendingClaim=true, hasStarted=true, showLoginOverlay=true');
         setPendingClaim(true);
         setHasStarted(true);
         setShowLoginOverlay(true);
 
-        console.log('[OTResponse] Auto-claim complete, login overlay should show');
+        console.log('[OTResponse][AUTO-CLAIM] Auto-claim complete, login overlay should show');
+      } else {
+        console.log('[OTResponse][AUTO-CLAIM] Conditions not met for auto-claim, status:', request.status, 'claimedByEmail:', request.claimedByEmail);
       }
+    } else {
+      console.log('[OTResponse][AUTO-CLAIM] Initial conditions not met - no auto-claim');
     }
   }, [searchParams, request, loggedInOTEmail, updateRequest]);
 
