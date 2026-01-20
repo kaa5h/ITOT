@@ -72,41 +72,45 @@ const OTResponse: React.FC = () => {
     console.log('[OTResponse][AUTO-CLAIM] loggedInOTEmail:', loggedInOTEmail);
     console.log('[OTResponse][AUTO-CLAIM] showLoginOverlay:', showLoginOverlay);
 
-    // Only auto-claim if:
-    // 1. There's a token in URL (coming from email)
-    // 2. Request exists
-    // 3. User is not logged in
-    // 4. Request is unclaimed or has pending claim
-    if (token && request && !loggedInOTEmail) {
-      console.log('[OTResponse][AUTO-CLAIM] Conditions met, checking claim status');
+    // When arriving from email link (token present), ALWAYS show login overlay
+    // This ensures security verification even if user appears logged in from previous session
+    if (token && request) {
+      console.log('[OTResponse][AUTO-CLAIM] Token detected - processing email link');
 
       const isUnclaimedOrPending = !request.claimedByEmail || request.claimedByEmail === 'pending';
       console.log('[OTResponse][AUTO-CLAIM] isUnclaimedOrPending:', isUnclaimedOrPending);
 
-      // Allow auto-claim for to-do or already in-progress with pending
+      // Only proceed if request is available to claim
       if (isUnclaimedOrPending && (request.status === 'to-do' || (request.status === 'in-progress' && request.claimedByEmail === 'pending'))) {
-        console.log('[OTResponse][AUTO-CLAIM] CLAIMING REQUEST NOW');
+        console.log('[OTResponse][AUTO-CLAIM] Request is available - claiming and showing login');
 
-        // Claim the request with pending status
-        const now = new Date().toISOString();
-        updateRequest(request.id, {
-          status: 'in-progress',
-          claimedByEmail: 'pending',
-          claimedAt: now,
-        });
+        // If user is NOT logged in, claim with pending
+        if (!loggedInOTEmail) {
+          console.log('[OTResponse][AUTO-CLAIM] User not logged in - claiming with pending');
+          const now = new Date().toISOString();
+          updateRequest(request.id, {
+            status: 'in-progress',
+            claimedByEmail: 'pending',
+            claimedAt: now,
+          });
+          setPendingClaim(true);
+        } else {
+          console.log('[OTResponse][AUTO-CLAIM] User already logged in - forcing re-authentication for security');
+          // User is logged in but coming from email - force re-authentication for security
+          // Clear the login temporarily to force login overlay
+          // We'll claim with logged-in email after re-authentication
+        }
 
-        // Set states to show login overlay
-        console.log('[OTResponse][AUTO-CLAIM] Setting states: pendingClaim=true, hasStarted=true, showLoginOverlay=true');
-        setPendingClaim(true);
+        // ALWAYS show login overlay when coming from email link
         setHasStarted(true);
         setShowLoginOverlay(true);
 
-        console.log('[OTResponse][AUTO-CLAIM] Auto-claim complete, login overlay should show');
+        console.log('[OTResponse][AUTO-CLAIM] Login overlay shown');
       } else {
-        console.log('[OTResponse][AUTO-CLAIM] Conditions not met for auto-claim, status:', request.status, 'claimedByEmail:', request.claimedByEmail);
+        console.log('[OTResponse][AUTO-CLAIM] Request not available for claim, status:', request.status, 'claimedByEmail:', request.claimedByEmail);
       }
     } else {
-      console.log('[OTResponse][AUTO-CLAIM] Initial conditions not met - no auto-claim');
+      console.log('[OTResponse][AUTO-CLAIM] No token or no request - skipping auto-claim');
     }
   }, [searchParams, request, loggedInOTEmail, updateRequest]);
 
