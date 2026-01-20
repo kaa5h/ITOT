@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Play, AlertCircle, X, Copy, Check, Link } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Endpoint, Message, TemplateField } from '../types';
@@ -9,6 +9,7 @@ import { DataPointGrid } from '../components/DataPointGrid';
 const OTResponse: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { requests, updateRequest, addMessage, currentUser, templates, addEmail, loggedInOTEmail, loginOT } = useAppContext();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +58,38 @@ const OTResponse: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [request?.conversation]);
+
+  // Auto-claim when arriving from email link
+  useEffect(() => {
+    const token = searchParams.get('token');
+
+    // Only auto-claim if:
+    // 1. There's a token in URL (coming from email)
+    // 2. Request exists and is to-do or pending
+    // 3. User is not logged in
+    if (token && request && !loggedInOTEmail) {
+      const isUnclaimedOrPending = !request.claimedByEmail || request.claimedByEmail === 'pending';
+
+      if (isUnclaimedOrPending && request.status === 'to-do') {
+        console.log('[OTResponse] Auto-claiming from email link, token:', token);
+
+        // Claim the request with pending status
+        const now = new Date().toISOString();
+        updateRequest(request.id, {
+          status: 'in-progress',
+          claimedByEmail: 'pending',
+          claimedAt: now,
+        });
+
+        // Set states to show login overlay
+        setPendingClaim(true);
+        setHasStarted(true);
+        setShowLoginOverlay(true);
+
+        console.log('[OTResponse] Auto-claim complete, login overlay should show');
+      }
+    }
+  }, [searchParams, request, loggedInOTEmail, updateRequest]);
 
   const handleLogin = () => {
     setLoginError('');
